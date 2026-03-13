@@ -1,0 +1,569 @@
+{
+  "meta": {
+    "id": "trading-ui-shadcn-kit",
+    "version": "1.0.0",
+    "generated_at": "2025-10-28T13:53:33.971413Z",
+    "framework": {
+      "react": "^18",
+      "vite": "^5",
+      "tailwindcss": "^3",
+      "shadcn_ui": "latest",
+      "icons": "lucide-react"
+    },
+    "design_language": "atomic (atoms \u2192 molecules \u2192 organisms \u2192 templates \u2192 pages)",
+    "path_alias": "@/",
+    "import_note": "Local components under src/components; shadcn/ui under src/components/ui/* after shadcn add."
+  },
+  "tokens": {
+    "breakpoints": {
+      "sm": "640px",
+      "md": "768px",
+      "lg": "1024px",
+      "xl": "1280px"
+    },
+    "radii": {
+      "sm": "0.375rem",
+      "md": "0.5rem",
+      "lg": "0.75rem",
+      "xl": "1rem",
+      "2xl": "1.25rem"
+    },
+    "elevation": {
+      "0": "shadow-none",
+      "1": "shadow-sm",
+      "2": "shadow",
+      "3": "shadow-md"
+    },
+    "borders": {
+      "default": "border",
+      "muted": "border border-muted"
+    },
+    "typography": {
+      "title": "text-lg font-semibold",
+      "body": "text-sm",
+      "meta": "text-[10px] text-muted-foreground tracking-wide"
+    },
+    "spacing": {
+      "gutter": "p-3",
+      "section": "p-2",
+      "stack": "space-y-2"
+    },
+    "colors_note": "Use Tailwind CSS vars from shadcn theme (background, foreground, muted, primary, secondary)."
+  },
+  "registry": [
+    {
+      "name": "Panel",
+      "kind": "atom",
+      "source": "local",
+      "path": "@/components/atoms/Panel",
+      "description": "Neutral bordered container for surfaces.",
+      "props": [
+        {
+          "name": "className",
+          "type": "string",
+          "default": ""
+        }
+      ],
+      "variants": [
+        {
+          "name": "default",
+          "classes": "bg-background border rounded-xl"
+        }
+      ],
+      "a11y": {
+        "role": "region",
+        "notes": "Supply aria-label when used as landmark."
+      }
+    },
+    {
+      "name": "IconButton",
+      "kind": "atom",
+      "source": "local (wraps shadcn Button)",
+      "path": "@/components/atoms/IconButton",
+      "description": "Icon-sized button; uses shadcn <Button> with size=icon.",
+      "props": [
+        {
+          "name": "variant",
+          "type": "ghost|outline|secondary|destructive|default",
+          "default": "ghost"
+        },
+        {
+          "name": "size",
+          "type": "icon",
+          "default": "icon"
+        }
+      ],
+      "variants": [
+        {
+          "name": "ghost",
+          "classes": "shrink-0"
+        }
+      ],
+      "a11y": {
+        "role": "button",
+        "notes": "Include aria-label; keep 44x44 hit target on touch."
+      }
+    },
+    {
+      "name": "StatPill",
+      "kind": "atom",
+      "path": "@/components/atoms/StatPill",
+      "description": "Compact OHLC/metric label-value pair with semantic color.",
+      "props": [
+        {
+          "name": "label",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "value",
+          "type": "string|number",
+          "required": true
+        },
+        {
+          "name": "accent",
+          "type": "\"up\"|\"down\"|\"flat\"",
+          "default": "flat"
+        }
+      ],
+      "variants": [
+        {
+          "name": "up",
+          "classes": "text-emerald-600"
+        },
+        {
+          "name": "down",
+          "classes": "text-rose-600"
+        },
+        {
+          "name": "flat",
+          "classes": "text-muted-foreground"
+        }
+      ]
+    },
+    {
+      "name": "TimeframeButton",
+      "kind": "atom",
+      "path": "@/components/atoms/TimeframeButton",
+      "description": "Shortcut chip for time ranges.",
+      "props": [
+        {
+          "name": "label",
+          "type": "string"
+        },
+        {
+          "name": "active",
+          "type": "boolean"
+        },
+        {
+          "name": "onClick",
+          "type": "()=>void"
+        }
+      ],
+      "variants": [
+        {
+          "name": "active",
+          "classes": "h-8 px-2 shadcn:secondary"
+        },
+        {
+          "name": "inactive",
+          "classes": "h-8 px-2 shadcn:ghost"
+        }
+      ]
+    },
+    {
+      "name": "SearchBox",
+      "kind": "molecule",
+      "path": "@/components/molecules/SearchBox",
+      "description": "Input with left search icon; height 32px (h-8).",
+      "uses": [
+        "ui/Input",
+        "lucide-react/Search"
+      ],
+      "props": [
+        {
+          "name": "placeholder",
+          "type": "string",
+          "default": "Search eg: infy, nifty fut, index fund, etc"
+        }
+      ],
+      "structure": {
+        "wrapper": "relative",
+        "icon": "absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground",
+        "input": "pl-8 h-8"
+      }
+    },
+    {
+      "name": "WatchItem",
+      "kind": "molecule",
+      "path": "@/components/molecules/WatchItem",
+      "description": "Row in watchlist with hover-to-remove affordance.",
+      "uses": [
+        "Badge",
+        "IconButton"
+      ],
+      "data_contract": {
+        "symbol": "string",
+        "tag": "string?",
+        "change": "number",
+        "price": "number"
+      },
+      "states": {
+        "hover": "bg-muted/60, show remove X",
+        "default": "neutral"
+      },
+      "structure": {
+        "row": "group flex justify-between py-2 px-2 rounded-md",
+        "right": "flex items-center gap-6",
+        "remove": "opacity-0 group-hover:opacity-100 transition-opacity"
+      }
+    },
+    {
+      "name": "TimeframeMenu",
+      "kind": "molecule",
+      "path": "@/components/molecules/TimeframeMenu",
+      "description": "Dropdown with grouped timeframes.",
+      "uses": [
+        "ui/DropdownMenu",
+        "ui/Button",
+        "lucide-react/ChevronDown"
+      ],
+      "props": [
+        {
+          "name": "value",
+          "type": "string"
+        },
+        {
+          "name": "onChange",
+          "type": "(v:string)=>void"
+        }
+      ],
+      "data_contract": {
+        "groups": [
+          {
+            "label": "Minutes|Hours|Days",
+            "values": [
+              "1m",
+              "2m",
+              "..."
+            ]
+          }
+        ]
+      },
+      "a11y": {
+        "keyboard": "Arrow nav in menu; ESC to close"
+      }
+    },
+    {
+      "name": "Watchlist",
+      "kind": "organism",
+      "path": "@/components/organisms/Watchlist",
+      "description": "Left sidebar: search, list, bottom numeric tabs (1\u20137).",
+      "uses": [
+        "Panel",
+        "SearchBox",
+        "ScrollArea",
+        "Tabs",
+        "WatchItem"
+      ],
+      "state": {
+        "items": "Array<WatchItem>",
+        "onRemove": "splice"
+      },
+      "responsive": {
+        "\u2264lg": "occupies first row as full-width panel"
+      }
+    },
+    {
+      "name": "IndicatorPicker",
+      "kind": "organism",
+      "path": "@/components/organisms/IndicatorPicker",
+      "description": "Popover with searchable indicators and applied overlays as removable badges.",
+      "uses": [
+        "ui/Popover",
+        "ui/Command",
+        "Badge"
+      ],
+      "props": [
+        {
+          "name": "applied",
+          "type": "string[]"
+        },
+        {
+          "name": "onApply",
+          "type": "(name)=>void"
+        },
+        {
+          "name": "onRemove",
+          "type": "(name)=>void"
+        }
+      ],
+      "data_contract": {
+        "catalog": "string[]",
+        "applied": "string[]"
+      },
+      "keyboard": {
+        "open": "Enter/Click",
+        "search": "type to filter",
+        "apply": "Enter on item",
+        "close": "ESC"
+      }
+    },
+    {
+      "name": "ChartHeader",
+      "kind": "organism",
+      "path": "@/components/organisms/ChartHeader",
+      "description": "Top bar of the chart panel containing symbol badge, timeframe menu, OHLC stats, and indicators control.",
+      "uses": [
+        "Badge",
+        "Separator",
+        "IconButton",
+        "StatPill",
+        "TimeframeMenu",
+        "IndicatorPicker"
+      ],
+      "props": [
+        {
+          "name": "timeframe",
+          "type": "string"
+        },
+        {
+          "name": "setTimeframe",
+          "type": "(v)=>void"
+        },
+        {
+          "name": "applied",
+          "type": "string[]"
+        },
+        {
+          "name": "onApply",
+          "type": "(s)=>void"
+        },
+        {
+          "name": "onRemove",
+          "type": "(s)=>void"
+        }
+      ]
+    },
+    {
+      "name": "ChartPlaceholder",
+      "kind": "organism",
+      "path": "@/components/organisms/ChartPlaceholder",
+      "description": "Responsive blank area to host a charting library.",
+      "props": [],
+      "variants": [
+        {
+          "name": "default",
+          "classes": "relative h-[560px] md:h-[640px] w-full"
+        }
+      ]
+    },
+    {
+      "name": "TradingLayout",
+      "kind": "template",
+      "path": "@/app/templates/TradingLayout",
+      "description": "Two-column layout: Watchlist + Chart Panel, with app chrome.",
+      "uses": [
+        "Watchlist",
+        "ChartHeader",
+        "ChartPlaceholder",
+        "TimeframeButton",
+        "Card"
+      ],
+      "grid": "grid-cols-1 lg:grid-cols-[340px_1fr] gap-3 p-3",
+      "top_chrome": {
+        "height": "h-12",
+        "content": "Back + title | Clock + Settings"
+      }
+    }
+  ],
+  "ui_primitives": [
+    "Button",
+    "Badge",
+    "Card",
+    "Command",
+    "Dialog",
+    "DropdownMenu",
+    "Input",
+    "Label",
+    "Popover",
+    "ScrollArea",
+    "Separator",
+    "Tabs",
+    "Toggle",
+    "Tooltip"
+  ],
+  "patterns": [
+    {
+      "name": "WatchlistPanel",
+      "composed_of": [
+        "Panel",
+        "SearchBox",
+        "ScrollArea",
+        "WatchItem",
+        "Tabs"
+      ],
+      "behavior": "Hover X to remove items.",
+      "slots": {
+        "header": "search + meta",
+        "body": "list",
+        "footer": "tabs"
+      }
+    },
+    {
+      "name": "ChartToolbar",
+      "composed_of": [
+        "ChartHeader",
+        "TimeframeButton[]"
+      ],
+      "behavior": "TimeframeMenu controls the selected aggregation; buttons are shortcuts."
+    },
+    {
+      "name": "IndicatorPopover",
+      "composed_of": [
+        "IndicatorPicker"
+      ],
+      "data": {
+        "catalog": "string[]",
+        "applied": "string[]"
+      },
+      "behavior": "Applied list shows as removable badges; keep max 6 visible before wrapping."
+    },
+    {
+      "name": "ChartPage",
+      "composed_of": [
+        "WatchlistPanel",
+        "ChartToolbar",
+        "ChartPlaceholder"
+      ],
+      "grid": "Two-column responsive as described in TradingLayout."
+    }
+  ],
+  "data_samples": {
+    "watchlist_items": [
+      {
+        "symbol": "GARUDA",
+        "tag": "event",
+        "change": -0.89,
+        "price": 205.97
+      },
+      {
+        "symbol": "RELIANCE",
+        "change": 0.19,
+        "price": 1486.9
+      }
+    ],
+    "timeframe_groups": [
+      {
+        "label": "Minutes",
+        "values": [
+          "1m",
+          "2m",
+          "3m",
+          "5m",
+          "10m",
+          "15m",
+          "30m"
+        ]
+      },
+      {
+        "label": "Hours",
+        "values": [
+          "1h",
+          "2h",
+          "3h"
+        ]
+      },
+      {
+        "label": "Days",
+        "values": [
+          "1d",
+          "1w",
+          "1mo"
+        ]
+      }
+    ],
+    "indicator_catalog": [
+      "52 Week High/Low",
+      "Accelerator Oscillator",
+      "Accumulation/Distribution",
+      "Average Price",
+      "Average True Range",
+      "Bollinger Bands",
+      "Bollinger %B",
+      "Bollinger Width",
+      "Aroon",
+      "ADX"
+    ]
+  },
+  "screen_blueprint_schema": {
+    "screen_id": "string",
+    "template": "TradingLayout|Custom",
+    "state": {
+      "timeframe": "string",
+      "appliedIndicators": "string[]",
+      "watchlist": "WatchItem[]"
+    },
+    "layout_overrides": {
+      "sidebarWidth": "css value",
+      "showTopChrome": "boolean"
+    },
+    "a11y": {
+      "page_title": "string",
+      "landmarks": [
+        "main",
+        "complementary"
+      ]
+    }
+  },
+  "screen_example": {
+    "screen_id": "reliance_daily",
+    "template": "TradingLayout",
+    "state": {
+      "timeframe": "1d",
+      "appliedIndicators": [
+        "52 Week High/Low",
+        "Average Price"
+      ],
+      "watchlist": [
+        {
+          "symbol": "GARUDA",
+          "tag": "event",
+          "change": -0.89,
+          "price": 205.97
+        },
+        {
+          "symbol": "RELIANCE",
+          "change": 0.19,
+          "price": 1486.9
+        }
+      ]
+    },
+    "layout_overrides": {
+      "sidebarWidth": "340px",
+      "showTopChrome": true
+    },
+    "a11y": {
+      "page_title": "Chart - RELIANCE",
+      "landmarks": [
+        "main",
+        "complementary"
+      ]
+    }
+  },
+  "rules": [
+    "Always import cn from '@/lib/utils' for class merging.",
+    "No absolute positioning for layout; prefer grid/flex.",
+    "Hit areas (touch): min 44x44.",
+    "Icons from lucide-react; keep 16px for dense toolbars.",
+    "Use Tabs for bottom watchlist pages; never more than 7 in visible grid.",
+    "Indicator badges wrap and are removable; keep aria-labels on removal buttons.",
+    "Do not hardcode colors; use semantic Tailwind/shadcn tokens."
+  ],
+  "a11y_checklist": [
+    "Buttons have aria-labels when icon-only.",
+    "Popovers and menus are keyboard accessible.",
+    "Focus ring is visible; never remove outline without replacement.",
+    "Dynamic lists announce changes (future when wiring live)."
+  ]
+}

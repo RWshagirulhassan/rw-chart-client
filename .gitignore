@@ -1,0 +1,104 @@
+# -------------------------------
+# Node / Package manager junk
+# -------------------------------
+node_modules/
+.npm/
+.pnp/
+.pnp.js
+.pnpm-debug.log*
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+*.log
+logs/
+*.pid
+*.pid.lock
+
+# -------------------------------
+# Build / cache artifacts
+# -------------------------------
+dist/
+build/
+.vite/
+.vitest/
+.turbo/
+.cache/
+*.tsbuildinfo
+tsconfig.tsbuildinfo
+
+# Storybook
+storybook-static/
+.out/
+# sometimes Storybook caches here:
+.node_modules/.cache/storybook/
+.cache/storybook/
+
+# Coverage
+coverage/
+.nyc_output/
+lcov-report/
+
+# -------------------------------
+# Testing (Cypress / Playwright)
+# -------------------------------
+cypress/videos/
+cypress/screenshots/
+cypress/downloads/
+playwright-report/
+blob-report/
+test-results/
+
+# -------------------------------
+# Environment files (keep example)
+# -------------------------------
+.env
+.env.local
+.env.*.local
+.env.development.local
+.env.test.local
+.env.production.local
+!.env.example
+
+# -------------------------------
+# Framework / host specific
+# -------------------------------
+.vercel/
+.netlify/
+.firebase/
+
+# -------------------------------
+# Editor / OS cruft
+# -------------------------------
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*.orig
+
+# VS Code – keep recommended project settings if you use them
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+!.vscode/launch.json
+!.vscode/tasks.json
+
+# JetBrains
+.idea/
+*.iml
+
+# Windows
+$RECYCLE.BIN/
+
+# -------------------------------
+# Certificates / secrets (if any)
+# -------------------------------
+*.pem
+*.key
+*.p12
+
+# -------------------------------
+# Shadcn / UI kit notes
+# -------------------------------
+# DO NOT ignore components.json (shadcn registry) — commit it.
+# components.json
