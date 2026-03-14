@@ -1,0 +1,16 @@
+{
+  "rewrites": [
+    {
+      "source": "/chart/:path*",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/embed/chart",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/embed/chart/:path*",
+      "destination": "/index.html"
+    }
+  ]
+}

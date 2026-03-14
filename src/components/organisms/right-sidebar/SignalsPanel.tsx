@@ -126,12 +126,6 @@ const formatDateTime = (iso: string) =>
     minute: "2-digit",
   });
 
-const isDefaultFilters = (filters: SignalFilters) =>
-  filters.q.trim().length === 0 &&
-  filters.kinds.size === 0 &&
-  filters.biases.size === 0 &&
-  filters.timeframes.size === 0;
-
 const filterSignals = (signals: Signal[], filters: SignalFilters) => {
   const query = filters.q.trim().toLowerCase();
   return signals

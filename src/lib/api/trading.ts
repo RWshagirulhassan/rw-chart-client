@@ -1,3 +1,5 @@
+import { backendFetch } from "@/lib/runtimeConfig";
+
 export type TradingAccountResponse = {
   accountId: string;
   userId: string;
@@ -243,8 +245,8 @@ async function parseErrorMessage(res: Response): Promise<string> {
   return text;
 }
 
-async function requestJson<T>(input: RequestInfo | URL, init?: RequestInit): Promise<T> {
-  const res = await fetch(input, init);
+async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
+  const res = await backendFetch(path, init);
   if (!res.ok) {
     const message = await parseErrorMessage(res);
     throw new TradingApiError(res.status, message);

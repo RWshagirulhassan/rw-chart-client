@@ -24,6 +24,7 @@ import type { ImperativePanelHandle } from "react-resizable-panels";
 
 import { TradingAccountPanel } from "@/components/organisms/trading/TradingAccountPanel";
 import { TradingChartPanel } from "@/components/organisms/trading/TradingChartPanel";
+import { backendFetch } from "@/lib/runtimeConfig";
 import type { ChartRouteInstrument } from "../chart/chartDomainTypes";
 import { useAuthSession } from "../auth/AuthContext";
 
@@ -148,7 +149,7 @@ export const TradingLayout: React.FC<{ instrument: ChartRouteInstrument }> = ({
   const handleLogout = React.useCallback(async () => {
     try {
       setIsLoggingOut(true);
-      await fetch("/kite/logout", { method: "POST" });
+      await backendFetch("/kite/logout", { method: "POST" });
     } finally {
       requestRefresh();
       setIsLoggingOut(false);

@@ -20,6 +20,7 @@ import {
   type UiAttachScriptResponse,
   type UiReplaceScriptResponse,
 } from "@/components/organisms/trading/scriptAttachUtils";
+import { backendFetch } from "@/lib/runtimeConfig";
 import {
   defaultEngineSessionTransport,
   type EngineSessionTransport,
@@ -708,10 +709,10 @@ export function useChartSeriesRuntime(args: UseChartSeriesRuntimeOptions) {
       scriptInstanceId: string,
     ) => {
       scriptTrace("plot_snapshot_fetch_start", { scriptInstanceId, sessionId });
-      const url = `/engine/ui-sessions/${encodeURIComponent(sessionId)}/series/${encodeURIComponent(
+      const path = `/engine/ui-sessions/${encodeURIComponent(sessionId)}/series/${encodeURIComponent(
         seriesKey,
       )}/scripts/${encodeURIComponent(scriptInstanceId)}/registries/plot/snapshot`;
-      const res = await fetch(url);
+      const res = await backendFetch(path);
       if (!res.ok) {
         scriptTrace("plot_snapshot_fetch_error", {
           scriptInstanceId,
@@ -773,10 +774,10 @@ export function useChartSeriesRuntime(args: UseChartSeriesRuntimeOptions) {
         scriptInstanceId,
         sessionId,
       });
-      const url = `/engine/ui-sessions/${encodeURIComponent(sessionId)}/series/${encodeURIComponent(
+      const path = `/engine/ui-sessions/${encodeURIComponent(sessionId)}/series/${encodeURIComponent(
         seriesKey,
       )}/scripts/${encodeURIComponent(scriptInstanceId)}/registries/drawing/snapshot`;
-      const res = await fetch(url);
+      const res = await backendFetch(path);
       if (!res.ok) {
         scriptTrace("drawing_snapshot_fetch_error", {
           scriptInstanceId,
@@ -813,10 +814,10 @@ export function useChartSeriesRuntime(args: UseChartSeriesRuntimeOptions) {
         sessionId,
         snapshotCursorSeq,
       });
-      const url = `/engine/ui-sessions/${encodeURIComponent(sessionId)}/series/${encodeURIComponent(
+      const path = `/engine/ui-sessions/${encodeURIComponent(sessionId)}/series/${encodeURIComponent(
         seriesKey,
       )}/scripts/${encodeURIComponent(scriptInstanceId)}/snapshot-ack`;
-      const res = await fetch(url, {
+      const res = await backendFetch(path, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ snapshotCursorSeq }),
@@ -1198,7 +1199,7 @@ export function useChartSeriesRuntime(args: UseChartSeriesRuntimeOptions) {
         });
 
         try {
-          const url = `/engine/ui-sessions/${encodeURIComponent(createdSessionId as string)}/series/${encodeURIComponent(
+          const path = `/engine/ui-sessions/${encodeURIComponent(createdSessionId as string)}/series/${encodeURIComponent(
             seriesKey,
           )}/scripts/attach`;
           scriptTrace("attach_request_start", {
@@ -1207,7 +1208,7 @@ export function useChartSeriesRuntime(args: UseChartSeriesRuntimeOptions) {
             executionMode: "ON_TICK",
             paramKeys: Object.keys(validation.params ?? {}),
           });
-          const res = await fetch(url, {
+          const res = await backendFetch(path, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -1318,11 +1319,11 @@ export function useChartSeriesRuntime(args: UseChartSeriesRuntimeOptions) {
           toLifecycle: "DETACHING",
         });
         try {
-          const url = `/engine/ui-sessions/${encodeURIComponent(createdSessionId)}/series/${encodeURIComponent(
+          const path = `/engine/ui-sessions/${encodeURIComponent(createdSessionId)}/series/${encodeURIComponent(
             seriesKey,
           )}/scripts/${encodeURIComponent(scriptInstanceId)}/detach`;
           scriptTrace("detach_request_start", { scriptInstanceId });
-          const res = await fetch(url, { method: "POST" });
+          const res = await backendFetch(path, { method: "POST" });
           if (!res.ok) {
             scriptTrace("detach_request_error", {
               scriptInstanceId,
@@ -1389,7 +1390,7 @@ export function useChartSeriesRuntime(args: UseChartSeriesRuntimeOptions) {
       });
 
       try {
-        const url = `/engine/ui-sessions/${encodeURIComponent(createdSessionId)}/series/${encodeURIComponent(
+        const path = `/engine/ui-sessions/${encodeURIComponent(createdSessionId)}/series/${encodeURIComponent(
           seriesKey,
         )}/scripts/${encodeURIComponent(scriptInstanceId)}/replace`;
         scriptTrace("replace_request_start", {
@@ -1397,7 +1398,7 @@ export function useChartSeriesRuntime(args: UseChartSeriesRuntimeOptions) {
           executionMode: current.executionMode,
           paramKeys: Object.keys(params ?? {}),
         });
-        const res = await fetch(url, {
+        const res = await backendFetch(path, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({

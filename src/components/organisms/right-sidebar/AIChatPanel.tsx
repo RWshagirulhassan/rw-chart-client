@@ -29,7 +29,6 @@ import {
   SelectItem,
   SelectTrigger,
 } from "@/components/ui/select";
-import { IconButton } from "@/components/atoms/IconButton";
 import { cn } from "@/lib/utils";
 
 type ChatMessage = {

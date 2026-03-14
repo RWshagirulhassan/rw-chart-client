@@ -1,3 +1,5 @@
+import { wsUrl } from "@/lib/runtimeConfig";
+
 export type TradingWsEnvelope<T = unknown> = {
   type: string;
   ts?: number;
@@ -21,10 +23,9 @@ export function connectTradingWs(
   accountId: string,
   handlers: TradingWsHandlers,
 ): TradingWsConnection {
-  const proto = window.location.protocol === "https:" ? "wss" : "ws";
-  const ws = new WebSocket(
-    `${proto}://${window.location.host}/trading/ws?accountId=${encodeURIComponent(accountId)}`,
-  );
+  const url = new URL(wsUrl("/trading/ws"));
+  url.searchParams.set("accountId", accountId);
+  const ws = new WebSocket(url.toString());
 
   ws.onopen = () => {
     handlers.onOpen?.();

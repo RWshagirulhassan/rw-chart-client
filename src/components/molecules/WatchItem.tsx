@@ -4,7 +4,6 @@ import { cn } from "@/lib/utils";
 import { Button } from "../ui/button";
 
 export const WatchItem: React.FC<{
-  _;
   symbol: string;
   change?: number;
   price?: number;

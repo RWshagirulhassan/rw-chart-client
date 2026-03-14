@@ -1,3 +1,4 @@
+import { backendFetch, wsUrl } from "@/lib/runtimeConfig";
 import type {
   SeriesSnapshotResponse,
   SessionCreateResponse,
@@ -29,7 +30,7 @@ function parseEnvelope(raw: string): WsEnvelope | null {
 
 export const defaultEngineSessionTransport: EngineSessionTransport = {
   async createSession(seriesKey: string): Promise<SessionCreateResponse> {
-    const response = await fetch("/engine/ui-sessions", {
+    const response = await backendFetch("/engine/ui-sessions", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -46,10 +47,9 @@ export const defaultEngineSessionTransport: EngineSessionTransport = {
 
   async destroySession(sessionId: string, keepalive: boolean): Promise<void> {
     try {
-      await fetch(`/engine/ui-sessions/${encodeURIComponent(sessionId)}`, {
+      await backendFetch(`/engine/ui-sessions/${encodeURIComponent(sessionId)}`, {
         method: "DELETE",
         keepalive,
-        credentials: "same-origin",
       });
     } catch {
       // no-op
@@ -60,7 +60,7 @@ export const defaultEngineSessionTransport: EngineSessionTransport = {
     sessionId: string,
     seriesKey: string,
   ): Promise<SeriesSnapshotResponse> {
-    const response = await fetch(
+    const response = await backendFetch(
       `/engine/ui-sessions/${encodeURIComponent(sessionId)}/series/${encodeURIComponent(
         seriesKey,
       )}/snapshot`,
@@ -72,7 +72,7 @@ export const defaultEngineSessionTransport: EngineSessionTransport = {
   },
 
   async listSessions() {
-    const response = await fetch("/engine/ui-sessions");
+    const response = await backendFetch("/engine/ui-sessions");
     if (!response.ok) {
       throw new Error(`list sessions failed (${response.status})`);
     }
@@ -83,12 +83,9 @@ export const defaultEngineSessionTransport: EngineSessionTransport = {
   },
 
   connectTicksWs(sessionId: string, handlers: WsHandlers): { close: () => void } {
-    const protocol = window.location.protocol === "https:" ? "wss" : "ws";
-    const ws = new WebSocket(
-      `${protocol}://${window.location.host}/ticks/ws?sessionId=${encodeURIComponent(
-        sessionId,
-      )}`,
-    );
+    const url = new URL(wsUrl("/ticks/ws"));
+    url.searchParams.set("sessionId", sessionId);
+    const ws = new WebSocket(url.toString());
 
     ws.onopen = () => {
       handlers.onOpen();

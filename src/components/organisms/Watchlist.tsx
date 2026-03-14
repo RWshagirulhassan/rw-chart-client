@@ -5,6 +5,7 @@ import { SearchBox, type SearchResult } from "@/components/molecules/SearchBox";
 import { WatchItem } from "@/components/molecules/WatchItem";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { backendFetch } from "@/lib/runtimeConfig";
 import { Separator } from "@radix-ui/react-separator";
 
 type WatchlistInstrument = {
@@ -241,8 +242,8 @@ export const Watchlist: React.FC = () => {
     const t = setTimeout(async () => {
       try {
         setLoading(true);
-        const url = `/api/instruments/suggest?q=${encodeURIComponent(q)}&limit=20`;
-        const res = await fetch(url, { signal: controller.signal });
+        const path = `/api/instruments/suggest?q=${encodeURIComponent(q)}&limit=20`;
+        const res = await backendFetch(path, { signal: controller.signal });
         if (!res.ok) {
           throw new Error(`HTTP ${res.status}`);
         }

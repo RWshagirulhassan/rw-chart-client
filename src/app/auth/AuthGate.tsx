@@ -1,5 +1,6 @@
 import * as React from "react";
 import { Button } from "@/components/ui/button";
+import { resolveBackendHref } from "@/lib/runtimeConfig";
 import { fetchAuthSession } from "./authApi";
 import { useAuthSession } from "./AuthContext";
 import { isAuthenticated } from "./authTypes";
@@ -66,7 +67,7 @@ export const AuthGate: React.FC<{ children: React.ReactNode }> = ({ children }) 
   }
 
   if (status === "unauthenticated") {
-    const loginHref = session?.loginUrl || "/kite/login";
+    const loginHref = session?.loginUrl || resolveBackendHref("/kite/login");
     return (
       <div className="h-screen w-full bg-background text-foreground flex items-center justify-center p-6">
         <div className="w-full max-w-md border bg-card text-card-foreground p-6 space-y-4 text-center">

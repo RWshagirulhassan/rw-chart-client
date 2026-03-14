@@ -17,6 +17,7 @@ import { ChartSpline, MoreHorizontal, Search } from "lucide-react";
 import type { SearchResult } from "@/components/molecules/SearchBox";
 import type { ChartRouteInstrument } from "@/app/chart/chartDomainTypes";
 import type { ChartCandle } from "@/components/organisms/chart/model/chartTypes";
+import { backendFetch } from "@/lib/runtimeConfig";
 import type {
   ClientScriptLifecycle,
   ScriptCatalogDetailsItem,
@@ -97,8 +98,8 @@ export const ChartHeader: React.FC<{
     const t = setTimeout(async () => {
       try {
         setLoading(true);
-        const url = `/api/instruments/suggest?q=${encodeURIComponent(q)}&limit=20`;
-        const res = await fetch(url, { signal: controller.signal });
+        const path = `/api/instruments/suggest?q=${encodeURIComponent(q)}&limit=20`;
+        const res = await backendFetch(path, { signal: controller.signal });
         if (!res.ok) {
           throw new Error(`HTTP ${res.status}`);
         }
@@ -140,8 +141,8 @@ export const ChartHeader: React.FC<{
         }
         params.set("limit", "100");
         params.set("offset", "0");
-        const url = `/engine/scripts/catalog/details?${params.toString()}`;
-        const res = await fetch(url, { signal: controller.signal });
+        const path = `/engine/scripts/catalog/details?${params.toString()}`;
+        const res = await backendFetch(path, { signal: controller.signal });
         if (!res.ok) {
           throw new Error(`HTTP ${res.status}`);
         }

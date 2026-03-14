@@ -1,4 +1,5 @@
 import type { AuthSession } from "./authTypes";
+import { backendFetch, resolveBackendHref } from "@/lib/runtimeConfig";
 
 function toMessage(status: number, body: unknown): string {
   if (body && typeof body === "object") {
@@ -36,12 +37,15 @@ function normalizeSession(body: unknown): AuthSession {
     expired: data.expired === true,
     userId: typeof data.userId === "string" ? data.userId : null,
     issuedAt: typeof data.issuedAt === "string" ? data.issuedAt : null,
-    loginUrl: typeof data.loginUrl === "string" ? data.loginUrl : null,
+    loginUrl:
+      typeof data.loginUrl === "string" && data.loginUrl.trim()
+        ? resolveBackendHref(data.loginUrl)
+        : null,
   };
 }
 
 export async function fetchAuthSession(): Promise<AuthSession> {
-  const res = await fetch("/api/session", {
+  const res = await backendFetch("/api/session", {
     method: "GET",
     headers: { Accept: "application/json" },
   });

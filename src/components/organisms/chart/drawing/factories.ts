@@ -1,4 +1,3 @@
-import type { Time } from "lightweight-charts";
 import type {
   CircleDrawing,
   LineDrawing,

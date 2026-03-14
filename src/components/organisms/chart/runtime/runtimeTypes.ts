@@ -3,7 +3,6 @@ import type {
   ScriptCatalogDetailsItem,
   ScriptInstanceView,
   ScriptPrimitiveDrawingPayload,
-  ScriptSnapshotReadyWsEvent,
 } from "@/components/organisms/trading/scriptAttachUtils";
 
 export type SessionCreateResponse = {
