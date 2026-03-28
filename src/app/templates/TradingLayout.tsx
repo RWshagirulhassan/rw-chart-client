@@ -6,13 +6,14 @@ import {
   AlertsPanel,
   type SidebarAlertItem,
 } from "@/components/organisms/right-sidebar/AlertsPanel";
-import { AIChatPanel } from "@/components/organisms/right-sidebar/AIChatPanel";
+// import { AIChatPanel } from "@/components/organisms/right-sidebar/AIChatPanel";
 import { SignalsPanel } from "@/components/organisms/right-sidebar/SignalsPanel";
 import {
   RightSidebarContent,
   RightSidebarRail,
 } from "@/components/organisms/right-sidebar/RightSidebar";
-import { Activity, Bookmark, Clock, Sparkles } from "lucide-react";
+import { Activity, Bookmark, Clock } from "lucide-react";
+// import { Sparkles } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -63,12 +64,12 @@ export const TradingLayout: React.FC<{ instrument: ChartRouteInstrument }> = ({
         icon: Activity,
         render: () => <SignalsPanel />,
       },
-      {
-        id: "ai-chat",
-        label: "AI Chat",
-        icon: Sparkles,
-        render: () => <AIChatPanel />,
-      },
+      // {
+      //   id: "ai-chat",
+      //   label: "AI Chat",
+      //   icon: Sparkles,
+      //   render: () => <AIChatPanel />,
+      // },
     ],
     [alerts, hasUnreadAlerts],
   );
