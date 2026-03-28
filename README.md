@@ -28,6 +28,16 @@ The frontend reads [`public/runtime-config.json`](/Users/shagirulhassan/Desktop/
 - `wsBaseUrl` is optional. If omitted, it is derived from `apiBaseUrl`.
 - To change the backend target for Vercel, update `public/runtime-config.json` in GitHub and redeploy.
 
+Current hosted target:
+
+```json
+{
+  "apiBaseUrl": "https://15.206.119.81"
+}
+```
+
+This makes the hosted frontend call the AWS backend directly and derive `wss://15.206.119.81` for WebSocket endpoints automatically.
+
 ## Checks
 ```bash
 npm run lint
