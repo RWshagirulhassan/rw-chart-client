@@ -58,7 +58,7 @@ function toBusinessDayFromEpochMsInExchangeTz(
   };
 }
 
-function isHigherTimeframe(timeframe: string): boolean {
+export function isHigherTimeframe(timeframe: string): boolean {
   const tf = timeframe.trim();
   if (!tf) return false;
   if (/^\d+[DWM]$/.test(tf)) return true; // e.g. 1D, 1W, 1M
@@ -77,6 +77,25 @@ function isHigherTimeframe(timeframe: string): boolean {
  * - intraday: shifted epoch seconds for exchange wall-clock
  * - daily/weekly/monthly: BusinessDay in exchange date
  */
+export function toChartTimeFromEpochMsInExchangeTz(
+  epochMs: number,
+  timeframe: string,
+  exchangeTz: ExchangeTimeZone
+): number | ExchangeBusinessDay | null {
+  if (!Number.isFinite(epochMs)) {
+    return null;
+  }
+  if (isHigherTimeframe(timeframe)) {
+    return toBusinessDayFromEpochMsInExchangeTz(epochMs, exchangeTz);
+  }
+  return toChartTimestampFromEpochMsInExchangeTz(epochMs, exchangeTz);
+}
+
+/**
+ * Timeframe-aware conversion for chart ingress:
+ * - intraday: shifted epoch seconds for exchange wall-clock
+ * - daily/weekly/monthly: BusinessDay in exchange date
+ */
 export function toChartTimeFromIsoInExchangeTz(
   iso: string,
   timeframe: string,
@@ -86,8 +105,5 @@ export function toChartTimeFromIsoInExchangeTz(
   if (!Number.isFinite(epochMs)) {
     return null;
   }
-  if (isHigherTimeframe(timeframe)) {
-    return toBusinessDayFromEpochMsInExchangeTz(epochMs, exchangeTz);
-  }
-  return toChartTimestampFromEpochMsInExchangeTz(epochMs, exchangeTz);
+  return toChartTimeFromEpochMsInExchangeTz(epochMs, timeframe, exchangeTz);
 }

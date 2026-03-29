@@ -317,7 +317,7 @@ const EmbedRuntimeSurface: React.FC<{
         liveCandle={liveCandle}
       />
       <div className="relative min-h-0 flex-1">
-        <TradingChart />
+        <TradingChart timeframe={timeframe} />
         <EmbedDrawingBridge seriesKey={seriesKey} />
       </div>
     </div>

@@ -261,6 +261,21 @@ Recommended usage:
 - For daily charts, use `YYYY-MM-DD`.
 - For intraday or tick charts, use ISO datetime strings with timezone, or epoch seconds.
 
+The chart now snaps drawing anchors onto real candles when the exact timestamp is
+missing:
+
+- `YYYY-MM-DD` start anchors on intraday or tick charts map to that trading
+  day's first candle.
+- `YYYY-MM-DD` end anchors on intraday or tick charts map to that trading
+  day's last candle.
+- Intraday timestamps on daily charts collapse onto the matching trading day candle.
+- If a requested day or timestamp has no exact candle, the chart uses the next
+  available candle, or the previous one if there is no later candle.
+- If a requested day is before or after the loaded range, the chart clamps it
+  to the first or last loaded candle so the drawing still renders.
+- The same drawing payload can be reused across timeframe switches without being
+  rejected for non-candle anchors.
+
 ## Minimal host example
 
 This example uses the new `symbolId` flow and only plots lines.

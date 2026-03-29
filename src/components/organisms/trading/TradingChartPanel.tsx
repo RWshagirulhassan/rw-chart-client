@@ -106,6 +106,7 @@ type ManualDraftState =
 
 const ChartCanvasContent: React.FC<{
   instrument: ChartRouteInstrument;
+  timeframe: string;
   currentTradePrice: number | null;
   chartWrapperClassName?: string;
   scriptInstances: ScriptInstanceView[];
@@ -122,6 +123,7 @@ const ChartCanvasContent: React.FC<{
   lastTickAt: string;
 }> = ({
   instrument,
+  timeframe,
   currentTradePrice,
   chartWrapperClassName,
   scriptInstances,
@@ -248,7 +250,7 @@ const ChartCanvasContent: React.FC<{
         chartWrapperClassName ?? ""
       }`.trim()}
     >
-      <TradingChart onChartClick={handleChartClick} />
+      <TradingChart timeframe={timeframe} onChartClick={handleChartClick} />
       <ManualDrawingToolkit
         activeTool={activeTool}
         hasDraft={draft != null}
@@ -399,6 +401,7 @@ export const TradingChartPanel: React.FC<TradingChartPanelProps> = ({
             />
             <ChartCanvasContent
               instrument={instrument}
+              timeframe={timeframe}
               currentTradePrice={currentTradePrice}
               chartWrapperClassName={chartWrapperClassName}
               scriptInstances={scriptInstances}

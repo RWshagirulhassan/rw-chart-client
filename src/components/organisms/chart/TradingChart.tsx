@@ -11,8 +11,17 @@ import {
   type ISeriesApi,
 } from "lightweight-charts";
 import { drawingRegistry } from "./drawing/drawingRegistry";
+import {
+  buildCandleTimeIndex,
+  resolveDrawingTimeAnchors,
+  timeSortKey,
+} from "./drawing/timeAnchorResolver";
 import { toTime } from "./drawing/toTime";
-import { useDrawingsList, usePlotSeriesList, useChartState } from "./context/chartStore";
+import {
+  useDrawingsList,
+  usePlotSeriesList,
+  useChartState,
+} from "./context/chartStore";
 import type { Time } from "lightweight-charts";
 import type { ChartTime } from "./model/chartTypes";
 
@@ -53,25 +62,6 @@ function toLineWidth(value: number | undefined): 1 | 2 | 3 | 4 {
   return 2;
 }
 
-function timeSortKey(time: Time): number {
-  if (typeof time === "number") {
-    return time;
-  }
-  if (typeof time === "object" && time != null) {
-    const year = (time as any).year;
-    const month = (time as any).month;
-    const day = (time as any).day;
-    if (
-      typeof year === "number" &&
-      typeof month === "number" &&
-      typeof day === "number"
-    ) {
-      return Math.floor(Date.UTC(year, month - 1, day) / 1000);
-    }
-  }
-  return 0;
-}
-
 function normalizeLinePoints(points: Array<{ time: Time; value: number }>) {
   const byTime = new Map<number, { time: Time; value: number }>();
   for (const point of points) {
@@ -86,10 +76,14 @@ function normalizeLinePoints(points: Array<{ time: Time; value: number }>) {
     .map(([, point]) => point);
 }
 
-export function TradingChart(props: { onChartClick?: (point: ChartPointerPoint) => void }) {
+export function TradingChart(props: {
+  timeframe: string;
+  onChartClick?: (point: ChartPointerPoint) => void;
+}) {
   const { candles } = useChartState();
   const plotSeries = usePlotSeriesList();
   const drawings = useDrawingsList();
+  const { timeframe } = props;
   const onChartClickRef = useRef(props.onChartClick);
 
   const elRef = useRef<HTMLDivElement | null>(null);
@@ -123,7 +117,20 @@ export function TradingChart(props: { onChartClick?: (point: ChartPointerPoint) 
         .sort((a, b) => a[0] - b[0])
         .map(([, candle]) => candle);
     },
-    [candles]
+    [candles],
+  );
+
+  const candleTimeIndex = useMemo(
+    () => buildCandleTimeIndex(normalizedCandles, timeframe),
+    [normalizedCandles, timeframe],
+  );
+
+  const resolvedDrawings = useMemo(
+    () =>
+      drawings.map((drawing) =>
+        resolveDrawingTimeAnchors(drawing, candleTimeIndex),
+      ),
+    [candleTimeIndex, drawings],
   );
 
   useEffect(() => {
@@ -326,7 +333,7 @@ export function TradingChart(props: { onChartClick?: (point: ChartPointerPoint) 
     const series = candleSeriesRef.current;
     if (!series) return;
 
-    const nextIds = new Set(drawings.map((d) => d.id));
+    const nextIds = new Set(resolvedDrawings.map((d) => d.id));
 
     for (const [id, primitive] of primitiveByIdRef.current.entries()) {
       if (!nextIds.has(id)) {
@@ -339,7 +346,7 @@ export function TradingChart(props: { onChartClick?: (point: ChartPointerPoint) 
       }
     }
 
-    for (const drawing of drawings) {
+    for (const drawing of resolvedDrawings) {
       const existing = primitiveByIdRef.current.get(drawing.id);
       if (!existing) {
         const factory = drawingRegistry[drawing.kind];
@@ -352,7 +359,7 @@ export function TradingChart(props: { onChartClick?: (point: ChartPointerPoint) 
         existing.setDrawing?.(drawing);
       }
     }
-  }, [drawings]);
+  }, [resolvedDrawings]);
 
   return (
     <div
