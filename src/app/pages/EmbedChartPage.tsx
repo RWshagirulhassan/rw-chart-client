@@ -7,7 +7,7 @@ import {
 } from "@/app/chart/intervalKindMap";
 import type { ChartRouteInstrument } from "@/app/chart/chartDomainTypes";
 import { StatPill } from "@/components/atoms/StatPill";
-import { TimeframeMenu } from "@/components/molecules/TimeframeMenu";
+// import { TimeframeMenu } from "@/components/molecules/TimeframeMenu";
 import { TradingChart } from "@/components/organisms/chart/TradingChart";
 import { ChartProvider } from "@/components/organisms/chart/context/chartStore";
 import { EmbedDrawingBridge } from "@/components/organisms/chart/embed/EmbedDrawingBridge";
@@ -141,11 +141,12 @@ function resolveEmbedRequest(search: string): ParsedEmbedRequest {
   const hasInstrumentToken = Boolean(instrumentToken);
   const hasSymbolId = Boolean(symbolId);
 
-  if ([hasSeriesKey, hasInstrumentToken, hasSymbolId].filter(Boolean).length > 1) {
+  if (
+    [hasSeriesKey, hasInstrumentToken, hasSymbolId].filter(Boolean).length > 1
+  ) {
     return {
       ok: false,
-      error:
-        "Provide exactly one of seriesKey, instrumentToken, or symbolId.",
+      error: "Provide exactly one of seriesKey, instrumentToken, or symbolId.",
     };
   }
 
@@ -228,10 +229,11 @@ function resolveEmbedRequest(search: string): ParsedEmbedRequest {
 
 const EmbedChartHeader: React.FC<{
   instrument: ChartRouteInstrument;
-  timeframe: string;
-  onTimeframeChange: (value: string) => void;
   liveCandle: ChartCandle | null;
-}> = ({ instrument, timeframe, onTimeframeChange, liveCandle }) => {
+  // Re-enable with the commented TimeframeMenu below.
+  // timeframe: string;
+  // onTimeframeChange: (value: string) => void;
+}> = ({ instrument, liveCandle }) => {
   const fmtPrice = (value?: number) =>
     Number.isFinite(value)
       ? Number(value).toLocaleString(undefined, {
@@ -260,7 +262,7 @@ const EmbedChartHeader: React.FC<{
           </div>
           <Badge variant="secondary">{instrument.exchange}</Badge>
         </div>
-        <TimeframeMenu value={timeframe} onChange={onTimeframeChange} />
+        {/* <TimeframeMenu value={timeframe} onChange={onTimeframeChange} /> */}
         <div className="flex flex-wrap items-center gap-3 sm:ml-auto">
           <StatPill label="O" value={fmtPrice(liveCandle?.open)} />
           <StatPill label="H" value={fmtPrice(liveCandle?.high)} />
@@ -280,8 +282,8 @@ const EmbedChartHeader: React.FC<{
 const EmbedRuntimeSurface: React.FC<{
   instrument: ChartRouteInstrument;
   timeframe: string;
-  onTimeframeChange: (value: string) => void;
-}> = ({ instrument, timeframe, onTimeframeChange }) => {
+  // onTimeframeChange: (value: string) => void;
+}> = ({ instrument, timeframe }) => {
   const [liveCandle, setLiveCandle] = React.useState<ChartCandle | null>(null);
   const seriesKey = React.useMemo(
     () => buildSeriesKey(instrument.instrumentToken, timeframe),
@@ -310,10 +312,12 @@ const EmbedRuntimeSurface: React.FC<{
 
   return (
     <div className="flex h-full w-full min-h-0 flex-col bg-background">
+      {/* Re-enable props with the commented lines kept below:
+          timeframe={timeframe}
+          onTimeframeChange={onTimeframeChange}
+      */}
       <EmbedChartHeader
         instrument={instrument}
-        timeframe={timeframe}
-        onTimeframeChange={onTimeframeChange}
         liveCandle={liveCandle}
       />
       <div className="relative min-h-0 flex-1">
@@ -388,7 +392,9 @@ export default function EmbedChartPage() {
         )}&exchange=NSE`;
         const res = await backendFetch(path, { signal: controller.signal });
         if (res.status === 404) {
-          throw new Error(`No NSE instrument found for symbolId ${request.symbolId}.`);
+          throw new Error(
+            `No NSE instrument found for symbolId ${request.symbolId}.`,
+          );
         }
         if (!res.ok) {
           throw new Error(`Instrument lookup failed (${res.status}).`);
@@ -396,7 +402,9 @@ export default function EmbedChartPage() {
         const data = (await res.json()) as InstrumentLookupResponse;
         const instrumentToken = data.instrument_token?.trim();
         if (!instrumentToken) {
-          throw new Error(`Missing instrument token for symbolId ${request.symbolId}.`);
+          throw new Error(
+            `Missing instrument token for symbolId ${request.symbolId}.`,
+          );
         }
         setConfig({
           status: "ready",
@@ -432,6 +440,7 @@ export default function EmbedChartPage() {
     }
   }, [config]);
 
+  /*
   const handleTimeframeChange = React.useCallback(
     (nextTimeframe: string) => {
       if (typeof window === "undefined" || config.status !== "ready") {
@@ -456,11 +465,16 @@ export default function EmbedChartPage() {
       }
 
       const nextSearch = `?${params.toString()}`;
-      window.history.replaceState({}, "", `${window.location.pathname}${nextSearch}`);
+      window.history.replaceState(
+        {},
+        "",
+        `${window.location.pathname}${nextSearch}`,
+      );
       setSearch(nextSearch);
     },
     [config],
   );
+  */
 
   if (config.status === "loading") {
     return (
@@ -479,8 +493,12 @@ export default function EmbedChartPage() {
     return (
       <div className="h-screen w-full bg-background text-foreground flex items-center justify-center p-6 text-center">
         <div>
-          <div className="text-lg font-semibold">Invalid embed configuration</div>
-          <div className="text-sm text-muted-foreground mt-2">{config.error}</div>
+          <div className="text-lg font-semibold">
+            Invalid embed configuration
+          </div>
+          <div className="text-sm text-muted-foreground mt-2">
+            {config.error}
+          </div>
         </div>
       </div>
     );
@@ -489,10 +507,10 @@ export default function EmbedChartPage() {
   return (
     <div className="h-screen w-full overflow-hidden bg-background">
       <ChartProvider initialCandles={[]}>
+        {/* Re-enable prop with: onTimeframeChange={handleTimeframeChange} */}
         <EmbedRuntimeSurface
           instrument={config.instrument}
           timeframe={config.timeframe}
-          onTimeframeChange={handleTimeframeChange}
         />
       </ChartProvider>
     </div>
