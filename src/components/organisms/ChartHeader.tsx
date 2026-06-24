@@ -6,6 +6,12 @@ import { TimeframeMenu } from "@/components/molecules/TimeframeMenu";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+} from "@/components/ui/select";
+import {
   Dialog,
   DialogContent,
   DialogHeader,
@@ -29,6 +35,8 @@ type ScriptFilter = "ALL" | "INDICATOR" | "STRATEGY";
 export const ChartHeader: React.FC<{
   timeframe: string;
   setTimeframe: (v: string) => void;
+  volumeHistogramEnabled: boolean;
+  setVolumeHistogramEnabled: (value: boolean) => void;
   instrument: ChartRouteInstrument;
   liveCandle?: ChartCandle | null;
   onApplyScript: (script: ScriptCatalogDetailsItem) => void;
@@ -37,6 +45,8 @@ export const ChartHeader: React.FC<{
 }> = ({
   timeframe,
   setTimeframe,
+  volumeHistogramEnabled,
+  setVolumeHistogramEnabled,
   instrument,
   liveCandle,
   onApplyScript,
@@ -208,6 +218,19 @@ export const ChartHeader: React.FC<{
           </button>
           <Separator orientation="vertical" className="h-6" />
           <TimeframeMenu value={timeframe} onChange={setTimeframe} />
+          <Separator orientation="vertical" className="h-6" />
+          <Select
+            value={volumeHistogramEnabled ? "on" : "off"}
+            onValueChange={(value) => setVolumeHistogramEnabled(value === "on")}
+          >
+            <SelectTrigger className="h-8 rounded-none px-2 text-xs shadow-none">
+              Volume: {volumeHistogramEnabled ? "On" : "Off"}
+            </SelectTrigger>
+            <SelectContent align="start" className="rounded-none">
+              <SelectItem value="off">Volume Off</SelectItem>
+              <SelectItem value="on">Volume On</SelectItem>
+            </SelectContent>
+          </Select>
           <Separator orientation="vertical" className="h-6" />
           <Button
             type="button"

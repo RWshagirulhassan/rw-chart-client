@@ -4,6 +4,7 @@ import React, { useEffect, useMemo, useRef } from "react";
 import {
   CandlestickSeries,
   ColorType,
+  HistogramSeries,
   LineSeries,
   createChart,
   type MouseEventParams,
@@ -78,17 +79,20 @@ function normalizeLinePoints(points: Array<{ time: Time; value: number }>) {
 
 export function TradingChart(props: {
   timeframe: string;
+  showVolumeHistogram?: boolean;
   onChartClick?: (point: ChartPointerPoint) => void;
 }) {
   const { candles } = useChartState();
   const plotSeries = usePlotSeriesList();
   const drawings = useDrawingsList();
-  const { timeframe } = props;
+  const { timeframe, showVolumeHistogram = false } = props;
   const onChartClickRef = useRef(props.onChartClick);
+  const showVolumeHistogramRef = useRef(showVolumeHistogram);
 
   const elRef = useRef<HTMLDivElement | null>(null);
   const chartRef = useRef<IChartApi | null>(null);
   const candleSeriesRef = useRef<ISeriesApi<"Candlestick"> | null>(null);
+  const volumeSeriesRef = useRef<ISeriesApi<"Histogram"> | null>(null);
   const lineSeriesByIdRef = useRef<Map<string, ISeriesApi<"Line">>>(new Map());
   const primitiveByIdRef = useRef<Map<string, any>>(new Map());
   const didApplyInitialViewportRef = useRef(false);
@@ -97,7 +101,17 @@ export function TradingChart(props: {
 
   const normalizedCandles = useMemo(
     () => {
-      const byTime = new Map<number, { time: Time; open: number; high: number; low: number; close: number }>();
+      const byTime = new Map<
+        number,
+        {
+          time: Time;
+          open: number;
+          high: number;
+          low: number;
+          close: number;
+          volume?: number;
+        }
+      >();
       for (const c of candles) {
         const time = toTime(c.time);
         const key = timeSortKey(time);
@@ -111,6 +125,7 @@ export function TradingChart(props: {
           high: c.high,
           low: c.low,
           close: c.close,
+          volume: c.volume,
         });
       }
       return Array.from(byTime.entries())
@@ -118,6 +133,27 @@ export function TradingChart(props: {
         .map(([, candle]) => candle);
     },
     [candles],
+  );
+
+  const normalizedVolumeBars = useMemo(
+    () =>
+      normalizedCandles
+        .map((candle) => {
+          const volume = Number(candle.volume);
+          if (!Number.isFinite(volume)) {
+            return null;
+          }
+          return {
+            time: toTime(candle.time),
+            value: volume,
+            color:
+              candle.close >= candle.open
+                ? "rgba(34, 171, 148, 0.35)"
+                : "rgba(247, 82, 95, 0.35)",
+          };
+        })
+        .filter((bar): bar is { time: Time; value: number; color: string } => bar != null),
+    [normalizedCandles],
   );
 
   const candleTimeIndex = useMemo(
@@ -136,6 +172,10 @@ export function TradingChart(props: {
   useEffect(() => {
     onChartClickRef.current = props.onChartClick;
   }, [props.onChartClick]);
+
+  useEffect(() => {
+    showVolumeHistogramRef.current = showVolumeHistogram;
+  }, [showVolumeHistogram]);
 
   useEffect(() => {
     if (!elRef.current) return;
@@ -211,7 +251,6 @@ export function TradingChart(props: {
       const cross = hslVarAlpha("--foreground", 0.18, "rgba(0,0,0,0.18)");
       const up = hslVar("--chart-2", "#22ab94");
       const down = hslVar("--destructive", "#f7525f");
-
       chart.applyOptions({
         layout: {
           background: { type: ColorType.Solid, color: bg },
@@ -233,7 +272,28 @@ export function TradingChart(props: {
         borderVisible: false,
         wickUpColor: up,
         wickDownColor: down,
+        priceScaleId: "right",
       });
+      chart.priceScale("right").applyOptions({
+        scaleMargins: showVolumeHistogramRef.current
+          ? { top: 0.08, bottom: 0.24 }
+          : { top: 0.08, bottom: 0.1 },
+      });
+
+      const volumeSeries = volumeSeriesRef.current;
+      if (volumeSeries) {
+        volumeSeries.applyOptions({
+          priceFormat: { type: "volume" },
+          priceScaleId: "",
+          lastValueVisible: false,
+          priceLineVisible: false,
+          base: 0,
+          color: hslVarAlpha("--chart-2", 0.38, "rgba(34,171,148,0.38)"),
+        });
+        chart.priceScale("").applyOptions({
+          scaleMargins: { top: 0.76, bottom: 0.02 },
+        });
+      }
     };
 
     applyTheme();
@@ -255,6 +315,7 @@ export function TradingChart(props: {
       mo.disconnect();
       ro.disconnect();
       chart.unsubscribeClick(handleChartClick);
+      volumeSeriesRef.current = null;
       lineSeriesByIdRef.current.clear();
       primitiveByIdRef.current.clear();
       chart.remove();
@@ -262,6 +323,41 @@ export function TradingChart(props: {
       candleSeriesRef.current = null;
     };
   }, []);
+
+  useEffect(() => {
+    const chart = chartRef.current;
+    const candleSeries = candleSeriesRef.current;
+    if (!chart || !candleSeries) return;
+
+    if (showVolumeHistogram) {
+      if (!volumeSeriesRef.current) {
+        volumeSeriesRef.current = chart.addSeries(HistogramSeries, {
+          priceFormat: { type: "volume" },
+          priceScaleId: "",
+          lastValueVisible: false,
+          priceLineVisible: false,
+          base: 0,
+          color: "rgba(34, 171, 148, 0.35)",
+        });
+      }
+      chart.priceScale("right").applyOptions({
+        scaleMargins: { top: 0.08, bottom: 0.24 },
+      });
+      chart.priceScale("").applyOptions({
+        scaleMargins: { top: 0.76, bottom: 0.02 },
+      });
+      volumeSeriesRef.current.setData(normalizedVolumeBars as any);
+      return;
+    }
+
+    chart.priceScale("right").applyOptions({
+      scaleMargins: { top: 0.08, bottom: 0.1 },
+    });
+    if (volumeSeriesRef.current) {
+      chart.removeSeries(volumeSeriesRef.current);
+      volumeSeriesRef.current = null;
+    }
+  }, [normalizedVolumeBars, showVolumeHistogram]);
 
   useEffect(() => {
     const chart = chartRef.current;

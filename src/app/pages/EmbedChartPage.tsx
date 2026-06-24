@@ -9,13 +9,23 @@ import {
 import type { ChartRouteInstrument } from "@/app/chart/chartDomainTypes";
 import { StatPill } from "@/components/atoms/StatPill";
 // import { TimeframeMenu } from "@/components/molecules/TimeframeMenu";
+import { ChartLoadingSkeleton } from "@/components/organisms/chart/ChartLoadingSkeleton";
 import { TradingChart } from "@/components/organisms/chart/TradingChart";
-import { ChartProvider } from "@/components/organisms/chart/context/chartStore";
+import {
+  ChartProvider,
+  useChartState,
+} from "@/components/organisms/chart/context/chartStore";
 import { EmbedDrawingBridge } from "@/components/organisms/chart/embed/EmbedDrawingBridge";
 import { makeErrorEnvelope } from "@/components/organisms/chart/embed/embedProtocol";
 import type { ChartCandle } from "@/components/organisms/chart/model/chartTypes";
 import { useChartSeriesRuntime } from "@/components/organisms/chart/runtime/useChartSeriesRuntime";
 import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+} from "@/components/ui/select";
 import { backendFetch } from "@/lib/runtimeConfig";
 
 function postEmbedError(message: string) {
@@ -215,10 +225,17 @@ function resolveEmbedRequest(search: string): ParsedEmbedRequest {
 const EmbedChartHeader: React.FC<{
   instrument: ChartRouteInstrument;
   liveCandle: ChartCandle | null;
+  volumeHistogramEnabled: boolean;
+  setVolumeHistogramEnabled: (value: boolean) => void;
   // Re-enable with the commented TimeframeMenu below.
   // timeframe: string;
   // onTimeframeChange: (value: string) => void;
-}> = ({ instrument, liveCandle }) => {
+}> = ({
+  instrument,
+  liveCandle,
+  volumeHistogramEnabled,
+  setVolumeHistogramEnabled,
+}) => {
   const fmtPrice = (value?: number) =>
     Number.isFinite(value)
       ? Number(value).toLocaleString(undefined, {
@@ -249,6 +266,18 @@ const EmbedChartHeader: React.FC<{
         </div>
         {/* <TimeframeMenu value={timeframe} onChange={onTimeframeChange} /> */}
         <div className="flex flex-wrap items-center gap-3 sm:ml-auto">
+          <Select
+            value={volumeHistogramEnabled ? "on" : "off"}
+            onValueChange={(value) => setVolumeHistogramEnabled(value === "on")}
+          >
+            <SelectTrigger className="h-8 rounded-none px-2 text-xs shadow-none">
+              Volume: {volumeHistogramEnabled ? "On" : "Off"}
+            </SelectTrigger>
+            <SelectContent align="end" className="rounded-none">
+              <SelectItem value="off">Volume Off</SelectItem>
+              <SelectItem value="on">Volume On</SelectItem>
+            </SelectContent>
+          </Select>
           <StatPill label="O" value={fmtPrice(liveCandle?.open)} />
           <StatPill label="H" value={fmtPrice(liveCandle?.high)} />
           <StatPill label="L" value={fmtPrice(liveCandle?.low)} />
@@ -270,6 +299,8 @@ const EmbedRuntimeSurface: React.FC<{
   // onTimeframeChange: (value: string) => void;
 }> = ({ instrument, timeframe }) => {
   const [liveCandle, setLiveCandle] = React.useState<ChartCandle | null>(null);
+  const [sessionStatus, setSessionStatus] = React.useState("IDLE");
+  const [volumeHistogramEnabled, setVolumeHistogramEnabled] = React.useState(false);
   const seriesKey = React.useMemo(
     () => buildSeriesKey(instrument.instrumentToken, timeframe),
     [instrument.instrumentToken, timeframe],
@@ -279,6 +310,7 @@ const EmbedRuntimeSurface: React.FC<{
     instrumentToken: instrument.instrumentToken,
     timeframe,
     scriptsEnabled: false,
+    onStatus: setSessionStatus,
     onLiveCandle: setLiveCandle,
   });
 
@@ -304,11 +336,55 @@ const EmbedRuntimeSurface: React.FC<{
       <EmbedChartHeader
         instrument={instrument}
         liveCandle={liveCandle}
+        volumeHistogramEnabled={volumeHistogramEnabled}
+        setVolumeHistogramEnabled={setVolumeHistogramEnabled}
       />
-      <div className="relative min-h-0 flex-1">
-        <TradingChart timeframe={timeframe} />
-        <EmbedDrawingBridge seriesKey={seriesKey} />
-      </div>
+      <EmbedChartCanvas
+        timeframe={timeframe}
+        seriesKey={seriesKey}
+        sessionStatus={sessionStatus}
+        volumeHistogramEnabled={volumeHistogramEnabled}
+      />
+    </div>
+  );
+};
+
+const EmbedChartCanvas: React.FC<{
+  timeframe: string;
+  seriesKey: string;
+  sessionStatus: string;
+  volumeHistogramEnabled: boolean;
+}> = ({
+  timeframe,
+  seriesKey,
+  sessionStatus,
+  volumeHistogramEnabled,
+}) => {
+  const { candles } = useChartState();
+  const isLoading =
+    candles.length === 0 &&
+    (sessionStatus === "IDLE" ||
+      sessionStatus === "CONNECTING" ||
+      sessionStatus === "WS_CONNECTED" ||
+      sessionStatus === "BOOTSTRAPPING" ||
+      sessionStatus === "REBUILDING");
+
+  return (
+    <div className="relative min-h-0 flex-1">
+      <TradingChart
+        timeframe={timeframe}
+        showVolumeHistogram={volumeHistogramEnabled}
+      />
+      {isLoading ? (
+        <ChartLoadingSkeleton
+          message={
+            sessionStatus === "REBUILDING"
+              ? "Rebuilding chart history..."
+              : "Loading chart candles..."
+          }
+        />
+      ) : null}
+      <EmbedDrawingBridge seriesKey={seriesKey} />
     </div>
   );
 };

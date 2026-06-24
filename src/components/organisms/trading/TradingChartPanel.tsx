@@ -3,6 +3,7 @@
 import * as React from "react";
 import { Panel } from "@/components/atoms/Panel";
 import { ChartHeader } from "@/components/organisms/ChartHeader";
+import { ChartLoadingSkeleton } from "@/components/organisms/chart/ChartLoadingSkeleton";
 import { AppliedScriptsOverlay } from "@/components/organisms/trading/AppliedScriptsOverlay";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -101,6 +102,7 @@ type ManualDraftState =
 
 const ChartCanvasContent: React.FC<{
   timeframe: string;
+  volumeHistogramEnabled: boolean;
   chartWrapperClassName?: string;
   scriptInstances: ScriptInstanceView[];
   scriptActionError: string | null;
@@ -116,6 +118,7 @@ const ChartCanvasContent: React.FC<{
   lastTickAt: string;
 }> = ({
   timeframe,
+  volumeHistogramEnabled,
   chartWrapperClassName,
   scriptInstances,
   scriptActionError,
@@ -128,7 +131,7 @@ const ChartCanvasContent: React.FC<{
   lastTickAt,
 }) => {
   const { upsertScopeDrawing, removeScopeDrawing } = useChartActions();
-  const { drawingsByScope } = useChartState();
+  const { drawingsByScope, candles } = useChartState();
   const manualDrawingsById = React.useMemo(
     () => drawingsByScope[MANUAL_SCOPE] ?? {},
     [drawingsByScope],
@@ -240,6 +243,17 @@ const ChartCanvasContent: React.FC<{
   const isBlockingSeriesState =
     sessionStatus.startsWith("DEGRADED") ||
     sessionStatus.startsWith("STALE_SHARED");
+  const isLoadingSeriesState = React.useMemo(
+    () =>
+      !isBlockingSeriesState &&
+      candles.length === 0 &&
+      (sessionStatus === "IDLE" ||
+        sessionStatus === "CONNECTING" ||
+        sessionStatus === "WS_CONNECTED" ||
+        sessionStatus === "BOOTSTRAPPING" ||
+        sessionStatus === "REBUILDING"),
+    [candles.length, isBlockingSeriesState, sessionStatus],
+  );
   const blockingReason = sessionStatus.includes(":")
     ? sessionStatus.split(":").slice(1).join(":").trim()
     : "historical_data_unavailable";
@@ -250,7 +264,20 @@ const ChartCanvasContent: React.FC<{
         chartWrapperClassName ?? ""
       }`.trim()}
     >
-      <TradingChart timeframe={timeframe} onChartClick={handleChartClick} />
+      <TradingChart
+        timeframe={timeframe}
+        showVolumeHistogram={volumeHistogramEnabled}
+        onChartClick={handleChartClick}
+      />
+      {isLoadingSeriesState ? (
+        <ChartLoadingSkeleton
+          message={
+            sessionStatus === "REBUILDING"
+              ? "Rebuilding chart history..."
+              : "Loading chart candles..."
+          }
+        />
+      ) : null}
       {isBlockingSeriesState ? (
         <div className="absolute inset-0 z-20 flex items-center justify-center bg-background/88 px-6 text-center">
           <div className="max-w-md space-y-2 border border-border bg-card px-5 py-4 shadow-sm">
@@ -301,6 +328,7 @@ export const TradingChartPanel: React.FC<TradingChartPanelProps> = ({
   const [heartbeat, setHeartbeat] = React.useState("WAITING");
   const [lastTickPrice, setLastTickPrice] = React.useState("-");
   const [lastTickAt, setLastTickAt] = React.useState("-");
+  const [volumeHistogramEnabled, setVolumeHistogramEnabled] = React.useState(false);
   const [liveCandle, setLiveCandle] = React.useState<ChartCandle | null>(null);
   const [scriptInstances, setScriptInstances] = React.useState<
     ScriptInstanceView[]
@@ -358,6 +386,7 @@ export const TradingChartPanel: React.FC<TradingChartPanelProps> = ({
     [],
   );
   const scriptAttachEnabled = sessionStatus === "LIVE" && wsState === "OPEN";
+  const chartStateKey = `${instrument.instrumentToken}:${timeframe}`;
   return (
     <Panel
       className={`min-h-0 flex border-1 border-black flex-col ${
@@ -367,6 +396,8 @@ export const TradingChartPanel: React.FC<TradingChartPanelProps> = ({
       <ChartHeader
         timeframe={timeframe}
         setTimeframe={setTimeframe}
+        volumeHistogramEnabled={volumeHistogramEnabled}
+        setVolumeHistogramEnabled={setVolumeHistogramEnabled}
         instrument={instrument}
         liveCandle={liveCandle}
         onApplyScript={handleApplyScript}
@@ -384,7 +415,7 @@ export const TradingChartPanel: React.FC<TradingChartPanelProps> = ({
             cardContentClassName ?? ""
           }`.trim()}
         >
-          <ChartProvider initialCandles={[]}>
+          <ChartProvider key={chartStateKey} initialCandles={[]}>
             <ChartSessionBridge
               instrumentToken={instrument.instrumentToken}
               timeframe={timeframe}
@@ -399,6 +430,7 @@ export const TradingChartPanel: React.FC<TradingChartPanelProps> = ({
             />
             <ChartCanvasContent
               timeframe={timeframe}
+              volumeHistogramEnabled={volumeHistogramEnabled}
               chartWrapperClassName={chartWrapperClassName}
               scriptInstances={scriptInstances}
               scriptActionError={scriptActionError}
