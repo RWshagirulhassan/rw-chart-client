@@ -81,6 +81,52 @@ function dayKeyFromDateString(value: string): number | null {
   return year * 10000 + month * 100 + day;
 }
 
+function businessDayFromDayKey(dayKey: number): BusinessDay | null {
+  if (!Number.isFinite(dayKey) || dayKey <= 0) {
+    return null;
+  }
+  const year = Math.floor(dayKey / 10000);
+  const month = Math.floor((dayKey % 10000) / 100);
+  const day = dayKey % 100;
+  if (
+    !Number.isFinite(year) ||
+    !Number.isFinite(month) ||
+    !Number.isFinite(day) ||
+    month < 1 ||
+    month > 12 ||
+    day < 1 ||
+    day > 31
+  ) {
+    return null;
+  }
+  return { year, month, day };
+}
+
+function normalizeHigherTimeframeDayKey(
+  dayKey: number,
+  timeframe: string,
+): number {
+  const day = businessDayFromDayKey(dayKey);
+  if (!day) {
+    return dayKey;
+  }
+  if (timeframe === "1W") {
+    const utcDate = new Date(Date.UTC(day.year, day.month - 1, day.day));
+    const utcWeekday = utcDate.getUTCDay();
+    const daysFromMonday = (utcWeekday + 6) % 7;
+    utcDate.setUTCDate(utcDate.getUTCDate() - daysFromMonday);
+    return (
+      utcDate.getUTCFullYear() * 10000 +
+      (utcDate.getUTCMonth() + 1) * 100 +
+      utcDate.getUTCDate()
+    );
+  }
+  if (timeframe === "1M") {
+    return day.year * 10000 + day.month * 100 + 1;
+  }
+  return dayKey;
+}
+
 function dayKeyFromTime(time: Time): number {
   if (typeof time === "number") {
     return dayKeyFromChartTimestamp(time);
@@ -155,7 +201,16 @@ function resolveDateBasedTime(
   index: CandleTimeIndex,
   boundary: AnchorBoundary,
 ): Time | null {
+  const normalizedDayKey = index.higherTimeframe
+    ? normalizeHigherTimeframeDayKey(dayKey, index.timeframe)
+    : dayKey;
   const dayBounds = index.dayBoundsByKey.get(dayKey);
+  if (!dayBounds && normalizedDayKey !== dayKey) {
+    const normalizedBounds = index.dayBoundsByKey.get(normalizedDayKey);
+    if (normalizedBounds) {
+      return boundary === "end" ? normalizedBounds.last : normalizedBounds.first;
+    }
+  }
   if (dayBounds) {
     return boundary === "end" ? dayBounds.last : dayBounds.first;
   }
@@ -163,14 +218,14 @@ function resolveDateBasedTime(
     return null;
   }
   const firstLoadedDayKey = index.orderedDays[0].dayKey;
-  if (dayKey < firstLoadedDayKey) {
+  if (normalizedDayKey < firstLoadedDayKey) {
     return index.ordered[0].time;
   }
   const lastLoadedDayKey = index.orderedDays[index.orderedDays.length - 1].dayKey;
-  if (dayKey > lastLoadedDayKey) {
+  if (normalizedDayKey > lastLoadedDayKey) {
     return index.ordered[index.ordered.length - 1].time;
   }
-  return findNextOrPreviousByDayKey(index.orderedDays, dayKey);
+  return findNextOrPreviousByDayKey(index.orderedDays, normalizedDayKey);
 }
 
 function resolveMomentBasedTime(

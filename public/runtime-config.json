@@ -1,3 +1,5 @@
+
 {
-  "apiBaseUrl": "https://15.206.119.81"
+  "apiBaseUrl": "http://localhost:8086",
+  "wsBaseUrl": "ws://localhost:8086"
 }
