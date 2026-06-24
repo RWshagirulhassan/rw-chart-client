@@ -3,6 +3,7 @@ import {
   buildSeriesKey,
   mapIntervalKindToUiTimeframe,
   mapUiTimeframeToIntervalKind,
+  normalizeUiTimeframe,
   parseSeriesKey,
 } from "@/app/chart/intervalKindMap";
 import type { ChartRouteInstrument } from "@/app/chart/chartDomainTypes";
@@ -72,23 +73,7 @@ type InstrumentLookupResponse = {
 };
 
 function normalizeTimeframe(value: string | null): string | null {
-  const trimmed = value?.trim();
-  if (!trimmed) {
-    return null;
-  }
-  const match = trimmed.match(/^(\d+)([a-zA-Z])$/);
-  if (!match) {
-    return trimmed;
-  }
-  const [, amount, unitRaw] = match;
-  const unit = unitRaw.toLowerCase();
-  if (unit === "d" || unit === "w") {
-    return `${amount}${unit.toUpperCase()}`;
-  }
-  if (unit === "m" || unit === "h" || unit === "t") {
-    return `${amount}${unit}`;
-  }
-  return trimmed;
+  return normalizeUiTimeframe(value);
 }
 
 function resolveRequestedTimeframe(

@@ -26,6 +26,11 @@ export type SeriesSnapshotResponse = {
   lastSeq: number;
   snapshotCursor?: number;
   bars: SnapshotBar[];
+  bootstrapStatus?: string;
+  bootstrapError?: string | null;
+  seriesHealthStatus?: string;
+  seriesHealthReason?: string | null;
+  seriesReuseDecision?: string;
 };
 
 export type CandleAppendedPayload = {
@@ -44,6 +49,9 @@ export type BootstrapEventPayload = {
   sessionId?: string;
   seriesKey?: string;
   status?: string;
+  seriesHealthStatus?: string;
+  seriesHealthReason?: string | null;
+  seriesReuseDecision?: string;
 };
 
 export type WsEnvelope = {
@@ -77,26 +85,6 @@ export type PendingDrawingUpsert = {
   payload: ScriptPrimitiveDrawingPayload;
 };
 
-export type ScriptAlertPayload = {
-  messageType?: string;
-  scriptId?: string;
-  scriptInstanceId?: string;
-  instrumentToken?: number | string;
-  condition?: string;
-  triggerMode?: string;
-  targetClosePrice?: number;
-  closePrice?: number;
-  barIndex?: number;
-  barTime?: string;
-  expired?: boolean;
-  text?: string;
-};
-
-export type ScriptAlertEventPayload = {
-  scriptInstanceId?: string;
-  payload?: ScriptAlertPayload;
-};
-
 export type ScriptBridgeActions = {
   attachScriptFromCatalog: (script: ScriptCatalogDetailsItem) => void;
   detachScriptInstance: (scriptInstanceId: string) => void;
@@ -127,7 +115,6 @@ export type UseChartSeriesRuntimeArgs = {
   onHeartbeat?: (state: string) => void;
   onTick?: (price: string, at: string) => void;
   onLiveCandle?: (candle: ChartCandle | null) => void;
-  onScriptAlert?: (message: string) => void;
   onScriptActionsReady?: (actions: ScriptBridgeActions) => void;
   onScriptInstancesChange?: (items: ScriptInstanceView[]) => void;
   onScriptActionError?: (error: string | null) => void;

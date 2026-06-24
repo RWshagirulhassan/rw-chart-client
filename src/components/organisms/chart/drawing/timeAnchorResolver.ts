@@ -1,4 +1,5 @@
 import type { BusinessDay, Time } from "lightweight-charts";
+import { isHigherTimeframe as isHigherTimeframeUi } from "@/app/chart/intervalKindMap";
 import type {
   CircleDrawing,
   Drawing,
@@ -46,7 +47,7 @@ function isBusinessDayLike(value: unknown): value is BusinessDay {
 }
 
 function isHigherTimeframe(timeframe: string): boolean {
-  return /^\d+[DWM]$/i.test(timeframe.trim());
+  return isHigherTimeframeUi(timeframe);
 }
 
 function dayKeyFromBusinessDay(value: BusinessDay): number {

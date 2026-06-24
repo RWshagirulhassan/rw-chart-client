@@ -4,7 +4,6 @@ import * as React from "react";
 import { Panel } from "@/components/atoms/Panel";
 import { ChartHeader } from "@/components/organisms/ChartHeader";
 import { AppliedScriptsOverlay } from "@/components/organisms/trading/AppliedScriptsOverlay";
-import { TradeTicketOverlay } from "@/components/organisms/trading/TradeTicketOverlay";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   ChartProvider,
@@ -45,7 +44,6 @@ type TradingChartPanelProps = {
   cardClassName?: string;
   cardContentClassName?: string;
   chartWrapperClassName?: string;
-  onAlertTriggered?: (message: string) => void;
 };
 
 const NOOP_SCRIPT_ACTIONS: ScriptBridgeActions = {
@@ -62,7 +60,6 @@ const ChartSessionBridge: React.FC<{
   onHeartbeat: (state: string) => void;
   onTick: (price: string, at: string) => void;
   onLiveCandle: (candle: ChartCandle | null) => void;
-  onScriptAlert: (message: string) => void;
   onScriptActionsReady: (actions: ScriptBridgeActions) => void;
   onScriptInstancesChange: (items: ScriptInstanceView[]) => void;
   onScriptActionError: (error: string | null) => void;
@@ -74,7 +71,6 @@ const ChartSessionBridge: React.FC<{
   onHeartbeat,
   onTick,
   onLiveCandle,
-  onScriptAlert,
   onScriptActionsReady,
   onScriptInstancesChange,
   onScriptActionError,
@@ -88,7 +84,6 @@ const ChartSessionBridge: React.FC<{
     onHeartbeat,
     onTick,
     onLiveCandle,
-    onScriptAlert,
     onScriptActionsReady,
     onScriptInstancesChange,
     onScriptActionError,
@@ -105,9 +100,7 @@ type ManualDraftState =
   | null;
 
 const ChartCanvasContent: React.FC<{
-  instrument: ChartRouteInstrument;
   timeframe: string;
-  currentTradePrice: number | null;
   chartWrapperClassName?: string;
   scriptInstances: ScriptInstanceView[];
   scriptActionError: string | null;
@@ -122,9 +115,7 @@ const ChartCanvasContent: React.FC<{
   lastTickPrice: string;
   lastTickAt: string;
 }> = ({
-  instrument,
   timeframe,
-  currentTradePrice,
   chartWrapperClassName,
   scriptInstances,
   scriptActionError,
@@ -138,7 +129,10 @@ const ChartCanvasContent: React.FC<{
 }) => {
   const { upsertScopeDrawing, removeScopeDrawing } = useChartActions();
   const { drawingsByScope } = useChartState();
-  const manualDrawingsById = drawingsByScope[MANUAL_SCOPE] ?? {};
+  const manualDrawingsById = React.useMemo(
+    () => drawingsByScope[MANUAL_SCOPE] ?? {},
+    [drawingsByScope],
+  );
   const [activeTool, setActiveTool] = React.useState<SelectableManualTool>("line");
   const [draft, setDraft] = React.useState<ManualDraftState>(null);
   const manualDrawingOrderRef = React.useRef<string[]>([]);
@@ -243,6 +237,12 @@ const ChartCanvasContent: React.FC<{
   );
 
   const canDeleteManualDrawing = Object.keys(manualDrawingsById).length > 0;
+  const isBlockingSeriesState =
+    sessionStatus.startsWith("DEGRADED") ||
+    sessionStatus.startsWith("STALE_SHARED");
+  const blockingReason = sessionStatus.includes(":")
+    ? sessionStatus.split(":").slice(1).join(":").trim()
+    : "historical_data_unavailable";
 
   return (
     <div
@@ -251,6 +251,18 @@ const ChartCanvasContent: React.FC<{
       }`.trim()}
     >
       <TradingChart timeframe={timeframe} onChartClick={handleChartClick} />
+      {isBlockingSeriesState ? (
+        <div className="absolute inset-0 z-20 flex items-center justify-center bg-background/88 px-6 text-center">
+          <div className="max-w-md space-y-2 border border-border bg-card px-5 py-4 shadow-sm">
+            <div className="text-sm font-semibold text-foreground">
+              Historical data unavailable for this retained series
+            </div>
+            <div className="text-xs text-muted-foreground break-words">
+              {blockingReason}
+            </div>
+          </div>
+        </div>
+      ) : null}
       <ManualDrawingToolkit
         activeTool={activeTool}
         hasDraft={draft != null}
@@ -259,7 +271,6 @@ const ChartCanvasContent: React.FC<{
         onDeleteLatest={deleteLatestManualDrawing}
         onCancelDraft={() => setDraft(null)}
       />
-      <TradeTicketOverlay instrument={instrument} currentPrice={currentTradePrice} />
       <AppliedScriptsOverlay
         scriptInstances={scriptInstances}
         scriptActionError={scriptActionError}
@@ -283,7 +294,6 @@ export const TradingChartPanel: React.FC<TradingChartPanelProps> = ({
   cardClassName,
   cardContentClassName,
   chartWrapperClassName,
-  onAlertTriggered,
 }) => {
   const [timeframe, setTimeframe] = React.useState("1D");
   const [sessionStatus, setSessionStatus] = React.useState("IDLE");
@@ -329,9 +339,6 @@ export const TradingChartPanel: React.FC<TradingChartPanelProps> = ({
   const handleScriptActionError = React.useCallback((error: string | null) => {
     setScriptActionError(error);
   }, []);
-  const handleScriptAlert = React.useCallback((message: string) => {
-    onAlertTriggered?.(message);
-  }, [onAlertTriggered]);
   const handleApplyScript = React.useCallback(
     (script: ScriptCatalogDetailsItem) => {
       bridgeActionsRef.current.attachScriptFromCatalog(script);
@@ -351,14 +358,6 @@ export const TradingChartPanel: React.FC<TradingChartPanelProps> = ({
     [],
   );
   const scriptAttachEnabled = sessionStatus === "LIVE" && wsState === "OPEN";
-  const currentTradePrice = React.useMemo(() => {
-    if (liveCandle && Number.isFinite(liveCandle.close)) {
-      return liveCandle.close;
-    }
-    const parsed = Number(lastTickPrice);
-    return Number.isFinite(parsed) ? parsed : null;
-  }, [lastTickPrice, liveCandle]);
-
   return (
     <Panel
       className={`min-h-0 flex border-1 border-black flex-col ${
@@ -394,15 +393,12 @@ export const TradingChartPanel: React.FC<TradingChartPanelProps> = ({
               onHeartbeat={handleHeartbeat}
               onTick={handleTick}
               onLiveCandle={setLiveCandle}
-              onScriptAlert={handleScriptAlert}
               onScriptActionsReady={handleScriptActionsReady}
               onScriptInstancesChange={handleScriptInstancesChange}
               onScriptActionError={handleScriptActionError}
             />
             <ChartCanvasContent
-              instrument={instrument}
               timeframe={timeframe}
-              currentTradePrice={currentTradePrice}
               chartWrapperClassName={chartWrapperClassName}
               scriptInstances={scriptInstances}
               scriptActionError={scriptActionError}
