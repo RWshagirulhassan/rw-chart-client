@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { buildSeriesKey } from "@/app/chart/intervalKindMap";
+import { buildSeriesKey, isHigherTimeframe } from "@/app/chart/intervalKindMap";
 import { resolveScriptPrimitiveDrawing } from "@/components/organisms/chart/drawing/backendProtocol";
 import { scriptScope, useChartActions } from "@/components/organisms/chart/context/chartStore";
 import type { ChartCandle } from "@/components/organisms/chart/model/chartTypes";
@@ -31,8 +31,6 @@ import type {
   CandleAppendedPayload,
   PendingDrawingUpsert,
   PendingPlotEvent,
-  ScriptAlertEventPayload,
-  ScriptAlertPayload,
   ScriptBridgeActions,
   ScriptPlotEventPayload,
   SeriesSnapshotResponse,
@@ -86,10 +84,6 @@ function resolveBarIndex(bar: SnapshotBar): number | null {
   return Math.floor(epochMs / 1000);
 }
 
-function isHigherTimeframe(timeframe: string): boolean {
-  return /^\d+[DWM]$/i.test(timeframe.trim());
-}
-
 function keyFromChartCandleTime(time: ChartCandle["time"]): number | null {
   if (typeof time === "number" && Number.isFinite(time)) {
     return Math.floor(time);
@@ -109,37 +103,23 @@ function keyFromChartCandleTime(time: ChartCandle["time"]): number | null {
   return null;
 }
 
-function normalizeConditionLabel(condition: string | undefined): string {
-  switch ((condition ?? "").trim().toLowerCase()) {
-    case "crossing_up":
-      return "crossed up";
-    case "crossing_down":
-      return "crossed down";
-    default:
-      return "crossed";
-  }
-}
-
-function formatAlertMessage(payload: ScriptAlertPayload, timeframe: string): string {
-  const condition = normalizeConditionLabel(payload.condition);
-  const target = Number(payload.targetClosePrice);
-  const close = Number(payload.closePrice);
-  if (Number.isFinite(target) && Number.isFinite(close)) {
-    return `Close Alert Triggered: CLOSE ${condition} ${target.toFixed(
-      2,
-    )} (current ${close.toFixed(2)}) on ${timeframe}`;
-  }
-  if (typeof payload.text === "string" && payload.text.trim() !== "") {
-    return payload.text;
-  }
-  return "Close Alert Triggered";
-}
-
 const NOOP_SCRIPT_ACTIONS: ScriptBridgeActions = {
   attachScriptFromCatalog: () => {},
   detachScriptInstance: () => {},
   replaceScriptInstance: async () => {},
 };
+
+function isUnsafeSeriesHealth(status: string | null | undefined): boolean {
+  return status === "STALE_SHARED" || status === "DEGRADED";
+}
+
+function formatDegradedStatus(reason: string | null | undefined): string {
+  const normalized =
+    typeof reason === "string" && reason.trim() !== ""
+      ? reason.trim()
+      : "historical_data_unavailable";
+  return `DEGRADED: ${normalized}`;
+}
 
 export function useChartSeriesRuntime(args: UseChartSeriesRuntimeOptions) {
   const {
@@ -152,7 +132,6 @@ export function useChartSeriesRuntime(args: UseChartSeriesRuntimeOptions) {
     onHeartbeat,
     onTick,
     onLiveCandle,
-    onScriptAlert,
     onScriptActionsReady,
     onScriptInstancesChange,
     onScriptActionError,
@@ -176,7 +155,6 @@ export function useChartSeriesRuntime(args: UseChartSeriesRuntimeOptions) {
   const onHeartbeatRef = React.useRef(onHeartbeat ?? (() => {}));
   const onTickRef = React.useRef(onTick ?? (() => {}));
   const onLiveCandleRef = React.useRef(onLiveCandle ?? (() => {}));
-  const onScriptAlertRef = React.useRef(onScriptAlert ?? (() => {}));
   const onScriptActionsReadyRef = React.useRef(
     onScriptActionsReady ?? (() => {}),
   );
@@ -209,9 +187,6 @@ export function useChartSeriesRuntime(args: UseChartSeriesRuntimeOptions) {
   React.useEffect(() => {
     onLiveCandleRef.current = onLiveCandle ?? (() => {});
   }, [onLiveCandle]);
-  React.useEffect(() => {
-    onScriptAlertRef.current = onScriptAlert ?? (() => {});
-  }, [onScriptAlert]);
   React.useEffect(() => {
     onScriptActionsReadyRef.current = onScriptActionsReady ?? (() => {});
   }, [onScriptActionsReady]);
@@ -259,6 +234,8 @@ export function useChartSeriesRuntime(args: UseChartSeriesRuntimeOptions) {
     let snapshotLoaded = false;
     let snapshotCursor = -1;
     let terminalStatus: "COMPLETED" | "DEGRADED" | null = null;
+    let terminalHealthStatus: string | null = null;
+    let terminalHealthReason: string | null = null;
     let wsConnected = false;
     let lastWsMessageAt = 0;
     let heartbeatTimer: number | null = null;
@@ -576,6 +553,14 @@ export function useChartSeriesRuntime(args: UseChartSeriesRuntimeOptions) {
           ? sortedEntries[sortedEntries.length - 1][1]
           : null;
       onLiveCandleRef.current(latest);
+    };
+
+    const clearVisualSeries = () => {
+      byIndex.clear();
+      candleTimeByBarIndex.clear();
+      buffered.length = 0;
+      clearCandlesRef.current();
+      onLiveCandleRef.current(null);
     };
 
     const destroySessionById = (sessionId: string, keepalive: boolean) => {
@@ -1124,28 +1109,6 @@ export function useChartSeriesRuntime(args: UseChartSeriesRuntimeOptions) {
       }
     };
 
-    const handleAlertDelta = (delta: ScriptDeltaWsEvent) => {
-      if (!scriptsEnabled) {
-        return;
-      }
-      if (delta.registryType !== "alert" || delta.eventType !== "ALERT_ADD") {
-        return;
-      }
-      const eventPayload =
-        delta.payload && typeof delta.payload === "object"
-          ? (delta.payload as ScriptAlertEventPayload)
-          : null;
-      const payload =
-        eventPayload?.payload && typeof eventPayload.payload === "object"
-          ? eventPayload.payload
-          : null;
-      if (!payload) {
-        return;
-      }
-      const message = formatAlertMessage(payload, timeframe);
-      onScriptAlertRef.current(message);
-    };
-
     const attachScriptFromCatalog = (script: ScriptCatalogDetailsItem) => {
       void (async () => {
         setScriptActionError(null);
@@ -1492,32 +1455,45 @@ export function useChartSeriesRuntime(args: UseChartSeriesRuntimeOptions) {
         if (!active) {
           return;
         }
+        terminalHealthStatus = snapshot.seriesHealthStatus ?? terminalHealthStatus;
+        terminalHealthReason = snapshot.seriesHealthReason ?? terminalHealthReason;
         snapshotCursor =
           snapshot.snapshotCursor ?? snapshot.lastSeq ?? snapshotCursor;
 
-        byIndex.clear();
-        candleTimeByBarIndex.clear();
-        for (const bar of snapshot.bars ?? []) {
-          applyCandle(bar);
-        }
-
-        const replay = [...buffered].sort((a, b) => {
-          if (a.seq !== b.seq) return a.seq - b.seq;
-          return a.ts - b.ts;
-        });
-        for (const event of replay) {
-          if (event.seq > snapshotCursor) {
-            applyCandle(event.bar);
-            pruneByBeginIndex(event.meta?.beginIndex);
-            snapshotCursor = Math.max(snapshotCursor, event.seq);
+        if (isUnsafeSeriesHealth(snapshot.seriesHealthStatus)) {
+          clearVisualSeries();
+        } else {
+          byIndex.clear();
+          candleTimeByBarIndex.clear();
+          for (const bar of snapshot.bars ?? []) {
+            applyCandle(bar);
           }
+
+          const replay = [...buffered].sort((a, b) => {
+            if (a.seq !== b.seq) return a.seq - b.seq;
+            return a.ts - b.ts;
+          });
+          for (const event of replay) {
+            if (event.seq > snapshotCursor) {
+              applyCandle(event.bar);
+              pruneByBeginIndex(event.meta?.beginIndex);
+              snapshotCursor = Math.max(snapshotCursor, event.seq);
+            }
+          }
+          emitCandles();
         }
         buffered.length = 0;
         snapshotLoaded = true;
         flushPendingPlotEvents();
         flushPendingDrawingUpserts();
-        emitCandles();
-        setStatus(terminalStatus === "DEGRADED" ? "DEGRADED" : "LIVE");
+        if (
+          terminalStatus === "DEGRADED" ||
+          isUnsafeSeriesHealth(snapshot.seriesHealthStatus)
+        ) {
+          setStatus(formatDegradedStatus(terminalHealthReason));
+        } else {
+          setStatus("LIVE");
+        }
       } catch (error: any) {
         if (!active) {
           return;
@@ -1645,8 +1621,16 @@ export function useChartSeriesRuntime(args: UseChartSeriesRuntimeOptions) {
               ) {
                 return;
               }
+              terminalHealthStatus =
+                data.seriesHealthStatus ?? terminalHealthStatus;
+              terminalHealthReason =
+                data.seriesHealthReason ?? terminalHealthReason;
               if (msg.type === "bootstrap_started") {
-                setStatus("BOOTSTRAPPING");
+                setStatus(
+                  data.seriesHealthStatus === "REBUILDING"
+                    ? "REBUILDING"
+                    : "BOOTSTRAPPING",
+                );
                 return;
               }
               if (msg.type === "bootstrap_completed") {
@@ -1658,7 +1642,10 @@ export function useChartSeriesRuntime(args: UseChartSeriesRuntimeOptions) {
                 return;
               }
               if (msg.type === "snapshot_ready") {
-                if (data.status === "DEGRADED") {
+                if (
+                  data.status === "DEGRADED" ||
+                  isUnsafeSeriesHealth(data.seriesHealthStatus)
+                ) {
                   terminalStatus = "DEGRADED";
                 } else if (data.status === "COMPLETED") {
                   terminalStatus = "COMPLETED";
@@ -1704,10 +1691,6 @@ export function useChartSeriesRuntime(args: UseChartSeriesRuntimeOptions) {
               }
               if (data.registryType === "drawing") {
                 handleDrawingDelta(data);
-                return;
-              }
-              if (data.registryType === "alert") {
-                handleAlertDelta(data);
                 return;
               }
               return;

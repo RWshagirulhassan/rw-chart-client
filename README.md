@@ -1,6 +1,6 @@
 # RW Charting Client
 
-React + Vite frontend for the trading UI and embeddable chart surface.
+React + Vite frontend for the charting UI and embeddable chart surface.
 
 The app now supports an iframe-based chart integration for external host pages. The host page controls drawings through `window.postMessage()`, while the chart runs inside `/embed/chart`.
 
@@ -88,10 +88,24 @@ http://localhost:5173/embed/chart?seriesKey=408065@TIME_5M&displaySymbol=INFY&ex
 
 The embed page accepts either:
 
-- `timeframe`, such as `1m`, `2m`, `3m`, `5m`, `10m`, `15m`, `30m`, `45m`, `1h`, `1D`, `10t`, `100t`, `1000t`
-- `intervalKind`, such as `TIME_1M`, `TIME_2M`, `TIME_3M`, `TIME_5M`, `TIME_10M`, `TIME_15M`, `TIME_30M`, `TIME_45M`, `TIME_1H`, `TIME_1D`, `TICK_10T`, `TICK_100T`, `TICK_1000T`
+- `timeframe`, such as `1m`, `2m`, `3m`, `5m`, `10m`, `15m`, `30m`, `45m`, `1h`, `1D`, `1W`, `1M`, `10t`, `100t`, `1000t`
+- `intervalKind`, such as `TIME_1M`, `TIME_2M`, `TIME_3M`, `TIME_5M`, `TIME_10M`, `TIME_15M`, `TIME_30M`, `TIME_45M`, `TIME_1H`, `TIME_1D`, `TIME_1W`, `TIME_1MO`, `TICK_10T`, `TICK_100T`, `TICK_1000T`
 
 If both are absent, the embed defaults to `1D`.
+
+Notes:
+
+- `1W` renders backend-owned weekly candles and maps to `TIME_1W`.
+- `1M` renders backend-owned monthly candles and maps to `TIME_1MO`.
+- Keep month uppercase: `1M` means month, while lowercase `1m` means 1 minute.
+
+Examples:
+
+```text
+http://localhost:5173/embed/chart?symbolId=INFY&timeframe=1W
+http://localhost:5173/embed/chart?instrumentToken=408065&timeframe=1M&exchange=NSE&displaySymbol=INFY
+http://localhost:5173/embed/chart?seriesKey=408065@TIME_1MO&displaySymbol=INFY&exchange=NSE
+```
 
 ### How the iframe integration works
 

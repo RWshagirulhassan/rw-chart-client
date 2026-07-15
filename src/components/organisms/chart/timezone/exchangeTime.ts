@@ -1,3 +1,5 @@
+import { isHigherTimeframe as isHigherTimeframeUi } from "@/app/chart/intervalKindMap";
+
 export type ExchangeTimeZone = "IST";
 
 const IST_OFFSET_SECONDS = 330 * 60;
@@ -59,17 +61,7 @@ function toBusinessDayFromEpochMsInExchangeTz(
 }
 
 export function isHigherTimeframe(timeframe: string): boolean {
-  const tf = timeframe.trim();
-  if (!tf) return false;
-  if (/^\d+[DWM]$/.test(tf)) return true; // e.g. 1D, 1W, 1M
-  const upper = tf.toUpperCase();
-  return (
-    upper.endsWith("D") ||
-    upper.endsWith("W") ||
-    upper.endsWith("MO") ||
-    upper.endsWith("MON") ||
-    upper.endsWith("MONTH")
-  );
+  return isHigherTimeframeUi(timeframe);
 }
 
 /**

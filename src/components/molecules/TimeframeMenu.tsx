@@ -16,7 +16,7 @@ export const TimeframeMenu: React.FC<{
   const items = [
     { label: "Minutes", values: ["1m", "3m", "5m", "10m", "15m", "30m"] },
     { label: "Hours", values: ["1h"] },
-    { label: "Days", values: ["1D"] },
+    { label: "Higher", values: ["1D", "1W", "1M"] },
     // { label: "Ticks", values: ["10t", "100t", "1000t"] },
   ];
   return (
