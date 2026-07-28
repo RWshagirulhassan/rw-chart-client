@@ -109,6 +109,16 @@ const NOOP_SCRIPT_ACTIONS: ScriptBridgeActions = {
   replaceScriptInstance: async () => {},
 };
 
+function executionModeForCatalogScript(
+  script: ScriptCatalogDetailsItem,
+): "ON_CANDLE_CLOSE" | "ON_TICK" {
+  // Stateful indicators may retain provisional forming-bar state unless they
+  // implement explicit invalidation. Closed-candle execution is deterministic
+  // for both stateful and stateless indicators. Keep the existing strategy
+  // behavior until execution mode becomes catalog metadata.
+  return script.kind === "INDICATOR" ? "ON_CANDLE_CLOSE" : "ON_TICK";
+}
+
 function isUnsafeSeriesHealth(status: string | null | undefined): boolean {
   return status === "STALE_SHARED" || status === "DEGRADED";
 }
@@ -677,7 +687,7 @@ export function useChartSeriesRuntime(args: UseChartSeriesRuntimeOptions) {
         scriptId: script.scriptId,
         scriptName: script.name,
         kind: script.kind,
-        executionMode: "ON_TICK",
+        executionMode: executionModeForCatalogScript(script),
         lifecycle: "FAILED",
         error: message,
         bootstrapJobId: null,
@@ -1138,13 +1148,14 @@ export function useChartSeriesRuntime(args: UseChartSeriesRuntimeOptions) {
           return;
         }
 
+        const executionMode = executionModeForCatalogScript(script);
         const tempId = `local-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
         upsertScriptInstance({
           scriptInstanceId: tempId,
           scriptId: script.scriptId,
           scriptName: script.name,
           kind: script.kind,
-          executionMode: "ON_TICK",
+          executionMode,
           lifecycle: "ATTACHING",
           error: null,
           bootstrapJobId: null,
@@ -1168,7 +1179,7 @@ export function useChartSeriesRuntime(args: UseChartSeriesRuntimeOptions) {
           scriptTrace("attach_request_start", {
             scriptId: script.scriptId,
             tempScriptInstanceId: tempId,
-            executionMode: "ON_TICK",
+            executionMode,
             paramKeys: Object.keys(validation.params ?? {}),
           });
           const res = await backendFetch(path, {
@@ -1177,7 +1188,7 @@ export function useChartSeriesRuntime(args: UseChartSeriesRuntimeOptions) {
             body: JSON.stringify({
               scriptId: script.scriptId,
               params: validation.params,
-              executionMode: "ON_TICK",
+              executionMode,
             }),
           });
           if (!res.ok) {

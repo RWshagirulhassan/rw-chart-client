@@ -164,7 +164,14 @@ export type ScriptPrimitiveDrawingPayload = {
   stroke?: ScriptPrimitiveStrokePayload;
   label?: ScriptPrimitiveLabelPayload;
 
-  shape?: "diamond" | "triangle" | "circle" | "cross";
+  shape?:
+    | "diamond"
+    | "triangle"
+    | "triangleUp"
+    | "triangleDown"
+    | "circle"
+    | "cross";
+  color?: string;
   size?: number;
   opacity?: number;
   text?: string;

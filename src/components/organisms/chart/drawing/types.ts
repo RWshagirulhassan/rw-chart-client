@@ -53,7 +53,13 @@ export type CircleDrawing = DrawingBase & {
   label?: LabelSpec;
 };
 
-export type MarkerShape = "diamond" | "triangle" | "circle" | "cross";
+export type MarkerShape =
+  | "diamond"
+  | "triangle"
+  | "triangleUp"
+  | "triangleDown"
+  | "circle"
+  | "cross";
 export type MarkerLayout = "row" | "col";
 export type MarkerAlignment = "start" | "center" | "end";
 export type MarkerCoords = { x: number; y: number };
@@ -64,6 +70,7 @@ export type MarkerDrawing = DrawingBase & {
   coords?: MarkerCoords;
   offsetPx?: { x?: number | null; y?: number | null } | null;
   shape: MarkerShape;
+  color?: string;
   size: number;
   opacity?: number;
   text?: string;

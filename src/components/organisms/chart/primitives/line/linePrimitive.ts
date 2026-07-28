@@ -185,7 +185,7 @@ export class LinePrimitive {
       x2: x2 ?? null,
       y2: y2 ?? null,
       strokeColor: this.d.stroke.color,
-      strokeWidth: clamp(Math.round(this.d.stroke.width), 1, 12),
+      strokeWidth: clamp(this.d.stroke.width, 0.5, 12),
       dash: this.d.stroke.dash ?? [],
       z: (this.d.z ?? "top") as any,
       label: labelState,

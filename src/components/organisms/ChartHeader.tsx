@@ -269,7 +269,7 @@ export const ChartHeader: React.FC<{
           }
         }}
       >
-        <DialogContent className="max-w-5xl p-0 gap-0 min-h-[60vh] h-[70vh] max-h-[80vh] flex flex-col rounded-none overflow-hidden">
+        <DialogContent className="h-[70vh] min-h-[60vh] w-[calc(100vw-1rem)] max-w-5xl max-h-[80vh] flex flex-col gap-0 overflow-hidden rounded-none p-0">
           <DialogHeader className="px-6 pt-6 pb-3 border-b">
             <DialogTitle>Scripts</DialogTitle>
           </DialogHeader>
@@ -292,7 +292,7 @@ export const ChartHeader: React.FC<{
             ) : null}
           </div>
 
-          <div className="min-h-0 flex-1 grid grid-cols-1 md:grid-cols-[220px,1fr]">
+          <div className="grid min-h-0 flex-1 grid-cols-1 md:grid-cols-[220px,minmax(0,1fr)]">
             <aside className="border-r p-3">
               <div className="space-y-1">
                 {[
@@ -320,7 +320,7 @@ export const ChartHeader: React.FC<{
               </div>
             </aside>
 
-            <ScrollArea className="min-h-0">
+            <div className="min-h-0 min-w-0 overflow-y-auto">
               <div className="divide-y">
                 {scriptsLoading ? (
                   <div className="px-6 py-5 text-sm text-muted-foreground">
@@ -338,53 +338,55 @@ export const ChartHeader: React.FC<{
                   </div>
                 ) : null}
                 {!scriptsLoading && !scriptsError && scriptsOptions.map((item) => (
-                  <div
+                  <button
                     key={item.scriptId}
-                    className="px-6 py-4 flex items-center justify-between hover:bg-accent/40"
+                    type="button"
+                    disabled={!scriptAttachEnabled}
+                    onClick={() => onApplyScript(item)}
+                    className="block w-full overflow-hidden px-6 py-4 text-left hover:bg-accent/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                    aria-label={`Apply ${item.name}`}
                   >
-                    <div className="min-w-0">
-                      <div className="text-sm font-medium truncate">{item.name}</div>
-                      {item.description ? (
-                        <div className="text-xs text-muted-foreground truncate mt-0.5">
-                          {item.description}
+                    <div className="flex min-w-0 items-start justify-between gap-3">
+                      <div className="min-w-0 flex-1">
+                        <div className="truncate text-sm font-medium" title={item.name}>
+                          {item.name}
                         </div>
-                      ) : null}
-                      {(() => {
-                        const counts = lifecycleCountsByScriptId.get(item.scriptId);
-                        if (!counts || counts.size === 0) {
-                          return null;
-                        }
-                        return (
-                          <div className="mt-2 flex items-center gap-1 flex-wrap">
-                            {Array.from(counts.entries()).map(([lifecycle, count]) => (
-                              <Badge
-                                key={`${item.scriptId}-${lifecycle}`}
-                                variant={lifecycleVariant(lifecycle)}
-                                className="text-[10px]"
-                              >
-                                {lifecycle}:{count}
-                              </Badge>
-                            ))}
+                        {item.description ? (
+                          <div
+                            className="mt-0.5 truncate text-xs text-muted-foreground"
+                            title={item.description}
+                          >
+                            {item.description}
                           </div>
-                        );
-                      })()}
+                        ) : null}
+                        {(() => {
+                          const counts = lifecycleCountsByScriptId.get(item.scriptId);
+                          if (!counts || counts.size === 0) {
+                            return null;
+                          }
+                          return (
+                            <div className="mt-2 flex flex-wrap items-center gap-1">
+                              {Array.from(counts.entries()).map(([lifecycle, count]) => (
+                                <Badge
+                                  key={`${item.scriptId}-${lifecycle}`}
+                                  variant={lifecycleVariant(lifecycle)}
+                                  className="text-[10px]"
+                                >
+                                  {lifecycle}:{count}
+                                </Badge>
+                              ))}
+                            </div>
+                          );
+                        })()}
+                      </div>
+                      <Badge variant="secondary" className="shrink-0">
+                        {item.kind}
+                      </Badge>
                     </div>
-                    <div className="flex items-center gap-2 ml-4">
-                      <Badge variant="secondary">{item.kind}</Badge>
-                      <Button
-                        type="button"
-                        size="sm"
-                        className="rounded-none"
-                        disabled={!scriptAttachEnabled}
-                        onClick={() => onApplyScript(item)}
-                      >
-                        Apply
-                      </Button>
-                    </div>
-                  </div>
+                  </button>
                 ))}
               </div>
-            </ScrollArea>
+            </div>
           </div>
         </DialogContent>
       </Dialog>

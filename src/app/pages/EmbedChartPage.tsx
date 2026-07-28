@@ -19,6 +19,13 @@ import { EmbedDrawingBridge } from "@/components/organisms/chart/embed/EmbedDraw
 import { makeErrorEnvelope } from "@/components/organisms/chart/embed/embedProtocol";
 import type { ChartCandle } from "@/components/organisms/chart/model/chartTypes";
 import { useChartSeriesRuntime } from "@/components/organisms/chart/runtime/useChartSeriesRuntime";
+import type { ScriptBridgeActions } from "@/components/organisms/chart/runtime/runtimeTypes";
+import { AppliedScriptsOverlay } from "@/components/organisms/trading/AppliedScriptsOverlay";
+import { BackendIndicatorPicker } from "@/components/organisms/trading/BackendIndicatorPicker";
+import type {
+  ScriptCatalogDetailsItem,
+  ScriptInstanceView,
+} from "@/components/organisms/trading/scriptAttachUtils";
 import { Badge } from "@/components/ui/badge";
 import {
   Select,
@@ -27,6 +34,12 @@ import {
   SelectTrigger,
 } from "@/components/ui/select";
 import { backendFetch } from "@/lib/runtimeConfig";
+
+const NOOP_SCRIPT_ACTIONS: ScriptBridgeActions = {
+  attachScriptFromCatalog: () => {},
+  detachScriptInstance: () => {},
+  replaceScriptInstance: async () => {},
+};
 
 function postEmbedError(message: string) {
   try {
@@ -227,6 +240,9 @@ const EmbedChartHeader: React.FC<{
   liveCandle: ChartCandle | null;
   volumeHistogramEnabled: boolean;
   setVolumeHistogramEnabled: (value: boolean) => void;
+  indicatorAttachEnabled: boolean;
+  scriptInstances: ScriptInstanceView[];
+  onApplyIndicator: (indicator: ScriptCatalogDetailsItem) => void;
   // Re-enable with the commented TimeframeMenu below.
   // timeframe: string;
   // onTimeframeChange: (value: string) => void;
@@ -235,6 +251,9 @@ const EmbedChartHeader: React.FC<{
   liveCandle,
   volumeHistogramEnabled,
   setVolumeHistogramEnabled,
+  indicatorAttachEnabled,
+  scriptInstances,
+  onApplyIndicator,
 }) => {
   const fmtPrice = (value?: number) =>
     Number.isFinite(value)
@@ -278,6 +297,11 @@ const EmbedChartHeader: React.FC<{
               <SelectItem value="on">Volume On</SelectItem>
             </SelectContent>
           </Select>
+          <BackendIndicatorPicker
+            attachEnabled={indicatorAttachEnabled}
+            scriptInstances={scriptInstances}
+            onApply={onApplyIndicator}
+          />
           <StatPill label="O" value={fmtPrice(liveCandle?.open)} />
           <StatPill label="H" value={fmtPrice(liveCandle?.high)} />
           <StatPill label="L" value={fmtPrice(liveCandle?.low)} />
@@ -300,7 +324,22 @@ const EmbedRuntimeSurface: React.FC<{
 }> = ({ instrument, timeframe }) => {
   const [liveCandle, setLiveCandle] = React.useState<ChartCandle | null>(null);
   const [sessionStatus, setSessionStatus] = React.useState("IDLE");
+  const [wsState, setWsState] = React.useState("CONNECTING");
   const [volumeHistogramEnabled, setVolumeHistogramEnabled] = React.useState(false);
+  const [scriptInstances, setScriptInstances] = React.useState<
+    ScriptInstanceView[]
+  >([]);
+  const [scriptActionError, setScriptActionError] = React.useState<
+    string | null
+  >(null);
+  const scriptActionsRef =
+    React.useRef<ScriptBridgeActions>(NOOP_SCRIPT_ACTIONS);
+  const handleScriptActionsReady = React.useCallback(
+    (actions: ScriptBridgeActions) => {
+      scriptActionsRef.current = actions;
+    },
+    [],
+  );
   const seriesKey = React.useMemo(
     () => buildSeriesKey(instrument.instrumentToken, timeframe),
     [instrument.instrumentToken, timeframe],
@@ -309,10 +348,38 @@ const EmbedRuntimeSurface: React.FC<{
   useChartSeriesRuntime({
     instrumentToken: instrument.instrumentToken,
     timeframe,
-    scriptsEnabled: false,
+    scriptsEnabled: true,
     onStatus: setSessionStatus,
+    onWsState: setWsState,
     onLiveCandle: setLiveCandle,
+    onScriptActionsReady: handleScriptActionsReady,
+    onScriptInstancesChange: setScriptInstances,
+    onScriptActionError: setScriptActionError,
   });
+
+  const handleApplyIndicator = React.useCallback(
+    (indicator: ScriptCatalogDetailsItem) => {
+      scriptActionsRef.current.attachScriptFromCatalog(indicator);
+    },
+    [],
+  );
+  const handleDetachIndicator = React.useCallback(
+    (scriptInstanceId: string) => {
+      scriptActionsRef.current.detachScriptInstance(scriptInstanceId);
+    },
+    [],
+  );
+  const handleReplaceIndicator = React.useCallback(
+    async (scriptInstanceId: string, params: Record<string, unknown>) => {
+      await scriptActionsRef.current.replaceScriptInstance(
+        scriptInstanceId,
+        params,
+      );
+    },
+    [],
+  );
+  const indicatorAttachEnabled =
+    sessionStatus === "LIVE" && wsState === "OPEN";
 
   if (!seriesKey) {
     return (
@@ -338,12 +405,19 @@ const EmbedRuntimeSurface: React.FC<{
         liveCandle={liveCandle}
         volumeHistogramEnabled={volumeHistogramEnabled}
         setVolumeHistogramEnabled={setVolumeHistogramEnabled}
+        indicatorAttachEnabled={indicatorAttachEnabled}
+        scriptInstances={scriptInstances}
+        onApplyIndicator={handleApplyIndicator}
       />
       <EmbedChartCanvas
         timeframe={timeframe}
         seriesKey={seriesKey}
         sessionStatus={sessionStatus}
         volumeHistogramEnabled={volumeHistogramEnabled}
+        scriptInstances={scriptInstances}
+        scriptActionError={scriptActionError}
+        onDetachIndicator={handleDetachIndicator}
+        onReplaceIndicator={handleReplaceIndicator}
       />
     </div>
   );
@@ -354,11 +428,22 @@ const EmbedChartCanvas: React.FC<{
   seriesKey: string;
   sessionStatus: string;
   volumeHistogramEnabled: boolean;
+  scriptInstances: ScriptInstanceView[];
+  scriptActionError: string | null;
+  onDetachIndicator: (scriptInstanceId: string) => void;
+  onReplaceIndicator: (
+    scriptInstanceId: string,
+    params: Record<string, unknown>,
+  ) => Promise<void>;
 }> = ({
   timeframe,
   seriesKey,
   sessionStatus,
   volumeHistogramEnabled,
+  scriptInstances,
+  scriptActionError,
+  onDetachIndicator,
+  onReplaceIndicator,
 }) => {
   const { candles } = useChartState();
   const isLoading =
@@ -384,6 +469,12 @@ const EmbedChartCanvas: React.FC<{
           }
         />
       ) : null}
+      <AppliedScriptsOverlay
+        scriptInstances={scriptInstances}
+        scriptActionError={scriptActionError}
+        onDetachScript={onDetachIndicator}
+        onReplaceScript={onReplaceIndicator}
+      />
       <EmbedDrawingBridge seriesKey={seriesKey} />
     </div>
   );

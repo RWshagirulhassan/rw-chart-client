@@ -33,7 +33,7 @@ export const AppliedScriptsOverlay: React.FC<{
   }
 
   return (
-    <div className="pointer-events-none absolute left-3 top-16 z-20 flex max-w-[420px] flex-col gap-1">
+    <div className="pointer-events-none absolute left-2 top-2 z-20 flex max-w-[calc(100%_-_1rem)] flex-col gap-1 sm:max-w-[420px]">
       {sortedScriptInstances.map((instance) => {
         const loading = isLoadingLifecycle(instance.lifecycle);
         return (

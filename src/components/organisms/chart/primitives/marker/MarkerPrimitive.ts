@@ -21,6 +21,7 @@ type MarkerViewState = {
   x: number | null;
   y: number | null;
   shape: MarkerDrawing["shape"];
+  color?: string;
   size: number;
   opacity: number;
   text?: string;
@@ -50,7 +51,7 @@ class MarkerPaneRenderer {
 
       ctx.save();
       ctx.globalAlpha = opacity;
-      const color = resolveMarkerColor();
+      const color = this.s.color ?? resolveMarkerColor();
       ctx.fillStyle = color;
       ctx.strokeStyle = color;
       ctx.lineWidth = 2;
@@ -66,11 +67,21 @@ class MarkerPaneRenderer {
           ctx.fill();
           break;
         }
-        case "triangle": {
+        case "triangle":
+        case "triangleUp": {
           ctx.beginPath();
           ctx.moveTo(x, y - size);
           ctx.lineTo(x + size, y + size);
           ctx.lineTo(x - size, y + size);
+          ctx.closePath();
+          ctx.fill();
+          break;
+        }
+        case "triangleDown": {
+          ctx.beginPath();
+          ctx.moveTo(x, y + size);
+          ctx.lineTo(x + size, y - size);
+          ctx.lineTo(x - size, y - size);
           ctx.closePath();
           ctx.fill();
           break;
@@ -95,9 +106,16 @@ class MarkerPaneRenderer {
 
       if (this.s.text) {
         const fontSize = clamp(this.s.textSize ?? 12, 10, 24);
+        const columnTextAbove =
+          this.s.layout === "col" && this.s.shape === "triangleDown";
         ctx.font = `600 ${fontSize}px ui-sans-serif, system-ui`;
         ctx.fillStyle = color;
-        ctx.textBaseline = this.s.layout === "col" ? "top" : "middle";
+        ctx.textBaseline =
+          this.s.layout === "col"
+            ? columnTextAbove
+              ? "bottom"
+              : "top"
+            : "middle";
 
         const gap = size + 6;
         let textX = x + gap;
@@ -105,7 +123,7 @@ class MarkerPaneRenderer {
 
         if (this.s.layout === "col") {
           textX = x;
-          textY = y + gap;
+          textY = columnTextAbove ? y - gap : y + gap;
         }
 
         switch (this.s.alignment) {
@@ -195,6 +213,7 @@ export class MarkerPrimitive {
       x,
       y,
       shape: this.d.shape,
+      color: this.d.color,
       size: this.d.size,
       opacity: this.d.opacity ?? 1,
       text: this.d.text,

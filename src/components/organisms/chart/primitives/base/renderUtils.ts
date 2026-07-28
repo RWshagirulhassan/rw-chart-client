@@ -8,7 +8,7 @@ import { clamp } from "../../utils";
 
 export function applyStroke(ctx: CanvasRenderingContext2D, s: StrokeStyle) {
   ctx.strokeStyle = s.color;
-  ctx.lineWidth = clamp(Math.round(s.width), 1, 12);
+  ctx.lineWidth = clamp(s.width, 0.5, 12);
   ctx.setLineDash(s.dash ?? []);
 }
 

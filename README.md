@@ -98,6 +98,9 @@ Notes:
 - `1W` renders backend-owned weekly candles and maps to `TIME_1W`.
 - `1M` renders backend-owned monthly candles and maps to `TIME_1MO`.
 - Keep month uppercase: `1M` means month, while lowercase `1m` means 1 minute.
+- The embedded header's **Indicators** action lists only indicators registered by
+  the backend catalog. Once the chart session is live, users can apply an
+  indicator and then update its parameters or remove it from the chart overlay.
 
 Examples:
 

@@ -54,7 +54,14 @@ const LABEL_RECT_POS = new Set([
   "bottomRight",
 ]);
 const LABEL_TEXT_SIZE = new Set(["xs", "sm", "base", "md", "lg", "xl", "auto"]);
-const MARKER_SHAPES = new Set(["diamond", "triangle", "circle", "cross"]);
+const MARKER_SHAPES = new Set([
+  "diamond",
+  "triangle",
+  "triangleUp",
+  "triangleDown",
+  "circle",
+  "cross",
+]);
 const MARKER_LAYOUTS = new Set(["row", "col"]);
 const MARKER_ALIGNMENTS = new Set(["start", "center", "end"]);
 
@@ -419,6 +426,7 @@ export function resolveScriptPrimitiveDrawing(args: {
   const shape = MARKER_SHAPES.has(String(payload.shape))
     ? (payload.shape as MarkerShape)
     : "circle";
+  const color = asOptionalString(payload.color);
   const size = asFiniteNumber(payload.size) ?? 6;
   const opacity = asFiniteNumber(payload.opacity);
   const text = asOptionalString(payload.text);
@@ -447,6 +455,7 @@ export function resolveScriptPrimitiveDrawing(args: {
       coords,
       offsetPx,
       shape,
+      color,
       size,
       opacity: opacity ?? 1,
       text,

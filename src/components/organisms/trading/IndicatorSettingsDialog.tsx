@@ -125,8 +125,8 @@ export const IndicatorSettingsDialog: React.FC<{
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[94vw] max-w-[540px] gap-0 overflow-hidden rounded-xl border border-border bg-background p-0 shadow-lg">
-        <div className="border-b border-border bg-background px-5 py-4">
+      <DialogContent className="flex max-h-[calc(100dvh-1rem)] w-[94vw] max-w-[540px] flex-col gap-0 overflow-hidden rounded-xl border border-border bg-background p-0 shadow-lg">
+        <div className="shrink-0 border-b border-border bg-background px-5 py-4">
           <DialogTitle className="text-[28px] font-semibold leading-none">
             {scriptName || "BB"}
           </DialogTitle>
@@ -135,12 +135,12 @@ export const IndicatorSettingsDialog: React.FC<{
           </DialogDescription>
         </div>
 
-        <div className="max-h-[56vh] overflow-auto bg-background px-5 py-5">
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain bg-background px-4 py-4 sm:px-5 sm:py-5">
           {paramsMeta.length === 0 ? (
             <div className="text-sm text-muted-foreground">No configurable parameters.</div>
           ) : (
             <div className="space-y-6">
-              <div className="grid grid-cols-[120px,1fr] items-center gap-x-5 gap-y-3.5">
+              <div className="grid grid-cols-1 items-center gap-x-5 gap-y-2 sm:grid-cols-[120px,1fr] sm:gap-y-3.5">
                 {paramsMeta.map((meta) => (
                   <React.Fragment key={meta.name}>
                     <label className="text-[14px]">
@@ -165,7 +165,7 @@ export const IndicatorSettingsDialog: React.FC<{
           ) : null}
         </div>
 
-        <div className="flex  w-full items-center justify-between border-t border-border bg-background px-5 py-3">
+        <div className="flex w-full shrink-0 flex-wrap items-center justify-between gap-2 border-t border-border bg-background px-4 py-3 sm:px-5">
           <button
             type="button"
             disabled={submitting}
